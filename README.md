@@ -60,6 +60,8 @@ Wallpapers are bundled at build time; there is no on-TV photo importer yet. Only
 
 ## Install and return to your previous Home screen
 
+Want an AI agent to help with developer options, ADB, backups and installation? Start with **[AI-assisted setup](docs/AI-ASSISTED-SETUP.md)**, which includes copyable prompts and explains the steps that still need the physical remote.
+
 See **[Installation and recovery](docs/INSTALL.md)** for the full process.
 
 In brief: keep the original launcher installed and enabled, record its Home component, authorise ADB yourself, install QuietHome alongside it, and try QuietHome before changing the default Home app.
