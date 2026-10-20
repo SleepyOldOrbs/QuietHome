@@ -51,3 +51,11 @@ Research: Android [ImageView scale types](https://developer.android.com/referenc
 Added Picture framing under Wallpaper settings: Fill screen or Fit whole picture. It updates the existing bitmap without another decode and is included in backups. Removed filename-based artist guesses from captions; naming a file forest or lake does not establish authorship.
 
 Validation: host tests and APK build passed. Used three synthetic square test images, excluded from Git, in the API 31 TV emulator. Inspected screenshots showing crop versus full borders. Automatic one-minute advance, a paused image held over a minute, and manual advance while paused passed. No personal wallpaper collection was used or published.
+
+## 7. Live app catalogue and dock recovery
+
+Research: Android [broadcast lifecycle guidance](https://developer.android.com/develop/background-work/background-tasks/broadcasts) and [package visibility](https://developer.android.com/training/package-visibility).
+
+Listen for protected package changes only while the activity is started, debounce refreshes and recheck on resume. Defer rebuilding while a dialog has focus, retain menu snapshots, and preserve focus outside the dock. Unavailable favourites keep their saved positions; an empty visible dock explains how to choose apps and focuses All apps. No new package-query permission is added.
+
+Validation: host suite and APK build passed. On the isolated TV emulator, disabled the YouTube fixture, verified the empty-dock hint, restored the original default enable state and verified the tile returned. The QuietHome process stayed the same throughout. Inspected both screenshots, including preserved All apps focus. This test did not touch the household TV.

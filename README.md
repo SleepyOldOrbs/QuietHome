@@ -11,7 +11,7 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 
 ## What it does
 
-- **An app dock you control.** Choose favourites, use compact or standard tiles, and hold OK to rearrange them.
+- **An app dock you control.** Choose favourites, use compact or standard tiles, and hold OK to rearrange them. The dock refreshes when apps change; temporarily unavailable favourites keep their saved positions.
 - **Your own wallpaper collection.** Shuffle without repeats, avoid an immediate repeat between cycles, and remember the current image after restarting. Rotate every 1, 5 or 15 minutes, or pause for manual changes. Time away from Home does not consume the interval. Choose fill/crop or fit the whole image with borders.
 - **Artwork mode.** Fade the interface away after 30 seconds, one minute or two minutes. The first navigation or OK press brings the controls back without accidentally launching an app.
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.

@@ -39,7 +39,20 @@ public final class HomeActivity extends Activity {
     private final ArrayList<String> favourites = new ArrayList<>();
     private String[] wallpapers;
     private WallpaperDeck wallpaperDeck;
-    private boolean active, loading;
+    private boolean active, loading, catalogDirty;
+    private final Runnable refreshCatalog=()->{
+        if(!active||!catalogDirty||!hasWindowFocus())return;
+        View previous=getCurrentFocus();
+        boolean outsideDock=previous!=null && previous.getParent()!=dock;
+        scanApps();catalogDirty=false;rebuildDock();
+        if(outsideDock&&previous.isAttachedToWindow())previous.requestFocus();
+    };
+    private final BroadcastReceiver packageChanges=new BroadcastReceiver(){
+        @Override public void onReceive(Context context,Intent intent){
+            if(Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())&&intent.getBooleanExtra(Intent.EXTRA_REPLACING,false))return;
+            catalogDirty=true;handler.removeCallbacks(refreshCatalog);handler.postDelayed(refreshCatalog,250);
+        }
+    };
     private static final String DEFAULTS = "com.google.android.youtube.tv,com.sony.dtv.tvx,org.jellyfin.androidtv,com.netflix.ninja";
     private final Runnable enterArtwork = () -> {
         if(active && hasWindowFocus() && artworkDelay>0) setArtworkVisible(true);
@@ -241,6 +254,11 @@ public final class HomeActivity extends Activity {
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(compact?118:148),dp(108));
             cp.setMargins(dp(4),0,dp(4),0); dock.addView(card,cp);
         }
+        if(dock.getChildCount()==0){
+            TextView empty=text("Choose your favourites with Edit dock",16,0xFFD8E6E4);
+            empty.setPadding(dp(18),0,dp(18),0);dock.addView(empty);
+            allAppsButton.setNextFocusUpId(View.NO_ID);widgets.linkDock(allAppsButton);allAppsButton.requestFocus();return;
+        }
         View focus=wantedFocus==null?null:dock.findViewWithTag(wantedFocus);
         if(focus!=null)focus.requestFocus();
         else if(dock.getChildCount()>0) dock.getChildAt(0).requestFocus();
@@ -256,20 +274,22 @@ public final class HomeActivity extends Activity {
     }
     private void showApps(boolean unused) {
         scanApps();
-        String[] names=new String[apps.size()];
-        for(int i=0;i<apps.size();i++) names[i]=apps.get(i).name;
+        final ArrayList<App> choices=new ArrayList<>(apps);
+        String[] names=new String[choices.size()];
+        for(int i=0;i<choices.size();i++) names[i]=choices.get(i).name;
         new AlertDialog.Builder(this).setTitle("All apps")
-            .setItems(names,(d,i)->open(apps.get(i))).setNegativeButton("Close",null).show();
+            .setItems(names,(d,i)->open(choices.get(i))).setNegativeButton("Close",null).show();
     }
     private void editDock() {
         scanApps();
-        String[] names=new String[apps.size()];
-        boolean[] selected=new boolean[apps.size()];
+        final ArrayList<App> choices=new ArrayList<>(apps);
+        String[] names=new String[choices.size()];
+        boolean[] selected=new boolean[choices.size()];
         final ArrayList<String> chosen=new ArrayList<>(favourites);
-        for(int i=0;i<apps.size();i++){names[i]=apps.get(i).name;selected[i]=chosen.contains(apps.get(i).pkg);}
+        for(int i=0;i<choices.size();i++){names[i]=choices.get(i).name;selected[i]=chosen.contains(choices.get(i).pkg);}
         new AlertDialog.Builder(this).setTitle("Choose your dock apps")
             .setMultiChoiceItems(names,selected,(d,i,on)->{
-                String p=apps.get(i).pkg;
+                String p=choices.get(i).pkg;
                 if(on&&!chosen.contains(p))chosen.add(p); else if(!on)chosen.remove(p);
             })
             .setPositiveButton("Save",(d,i)->{
@@ -595,21 +615,33 @@ public final class HomeActivity extends Activity {
     }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
-        if(focused)armArtwork();else handler.removeCallbacks(enterArtwork);
+        if(focused){armArtwork();if(catalogDirty)handler.post(refreshCatalog);}else handler.removeCallbacks(enterArtwork);
     }
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);setIntent(intent);setArtworkVisible(false);
+    }
+    @Override protected void onStart(){
+        super.onStart();
+        IntentFilter filter=new IntentFilter();
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addAction(Intent.ACTION_PACKAGE_CHANGED);filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        filter.addDataScheme("package");
+        if(Build.VERSION.SDK_INT>=33)registerReceiver(packageChanges,filter,Context.RECEIVER_EXPORTED);
+        else registerReceiver(packageChanges,filter);
+    }
+    @Override protected void onStop(){
+        unregisterReceiver(packageChanges);handler.removeCallbacks(refreshCatalog);super.onStop();
     }
     @Override protected void onResume(){
         super.onResume();active=true;swallowedKey=-1;swallowedTouch=false;
         rotation.resume(SystemClock.elapsedRealtime());
         setArtworkVisible(false);handler.removeCallbacks(tick);handler.post(tick);
-        widgets.start();
+        widgets.start();catalogDirty=true;handler.post(refreshCatalog);
     }
     @Override protected void onPause(){
         rotation.pause(SystemClock.elapsedRealtime());
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
-        widgets.stop();
+        widgets.stop();handler.removeCallbacks(refreshCatalog);
         persistGallery();super.onPause();
     }
     @Override protected void onDestroy(){
@@ -617,7 +649,7 @@ public final class HomeActivity extends Activity {
         widgets.destroy();
         images.shutdownNow();super.onDestroy();
     }
-    @Override public void onBackPressed(){if(dock.getChildCount()>0)dock.getChildAt(0).requestFocus();}
+    @Override public void onBackPressed(){if(dock.getChildCount()>0&&dock.getChildAt(0).isFocusable())dock.getChildAt(0).requestFocus();else allAppsButton.requestFocus();}
     @Override public boolean onKeyDown(int key,KeyEvent event){
         if(key==KeyEvent.KEYCODE_MENU){editDock();return true;}return super.onKeyDown(key,event);
     }
