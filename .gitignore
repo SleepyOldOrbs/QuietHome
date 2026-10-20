@@ -1,0 +1,27 @@
+# Local builds, private signing material and machine configuration
+/build/
+/.local/
+/local.properties
+*.apk
+*.idsig
+*.aab
+*.p12
+*.jks
+*.keystore
+*.pem
+*.key
+.env
+.env.*
+# Supply your own images locally; personal collections must never be committed.
+/assets/wallpapers/*
+!/assets/wallpapers/.gitkeep
+/assets/widgets.json
+# Device captures, exported preferences and editor state
+/backups/
+/screenshots/
+/recovery-runs/
+.idea/
+.vscode/
+*.log
+Thumbs.db
+.DS_Store

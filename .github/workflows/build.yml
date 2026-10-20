@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android build tools
+        shell: pwsh
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;37.0.0"
+          if ($LASTEXITCODE) { throw "Android SDK installation failed" }
+      - name: Test shuffle and saved state
+        shell: pwsh
+        run: ./test.ps1
+      - name: Build and verify APK
+        shell: pwsh
+        run: ./build.ps1
