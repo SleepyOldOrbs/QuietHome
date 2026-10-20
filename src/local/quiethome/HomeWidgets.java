@@ -91,7 +91,7 @@ final class HomeWidgets {
     private JSONObject readCache(String key){
         try{return new JSONObject(prefs.getString(key,""));}catch(Exception e){return null;}
     }
-    private boolean enabled(String key){return prefs.getBoolean("widget_"+key,true);}
+    private boolean enabled(String key){return prefs.getBoolean("widget_"+key,"clock".equals(key));}
     boolean clockEnabled(){return enabled("clock");}
     void linkDock(View dock){
         if(dock==null)return;
@@ -175,12 +175,12 @@ final class HomeWidgets {
     }
     void options(Runnable changed){
         new AlertDialog.Builder(activity).setTitle("Widgets").setItems(
-            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location"},
+            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location","Clear feed data and turn feeds off","Forget weather town"},
             (dialog,index)->{
                 if(index==0){
                     boolean[] selected={enabled("clock"),enabled("weather"),enabled("news")};
                     new AlertDialog.Builder(activity).setTitle("Show on Home")
-                        .setMultiChoiceItems(new String[]{"Clock and date","Weather","BBC News"},selected,(d,i,value)->selected[i]=value)
+                        .setMultiChoiceItems(new String[]{"Clock and date (offline)","Weather (contacts Open-Meteo)","News (contacts BBC)"},selected,(d,i,value)->selected[i]=value)
                         .setPositiveButton("Save",(d,i)->{
                             invalidateRequests();
                             prefs.edit().putBoolean("widget_clock",selected[0]).putBoolean("widget_weather",selected[1])
@@ -200,6 +200,22 @@ final class HomeWidgets {
                     .setMessage("Clock: this TV's time and time zone.\n\nWeather: "+town+", Celsius. Modelled conditions from Open-Meteo (CC BY 4.0), not a local sensor. Location lookup uses GeoNames via Open-Meteo.\nhttps://open-meteo.com/\n\nNews: BBC's published headlines and summaries. No AI rewriting.\nhttps://www.bbc.co.uk/news\n\nFeeds refresh about every 30 minutes while Home is open. Last successful results stay on this TV. Providers receive your IP address; weather requests include the chosen town's coordinates. No location access, account, analytics or advertising SDKs.")
                     .setPositiveButton("Close",null).show();
                 if(index==5)chooseTown();
+                if(index==6)new AlertDialog.Builder(activity).setTitle("Clear feed data?")
+                    .setMessage("Remove cached weather and news from this app and turn both feeds off. Your town and edition stay selected. Previously exported or OS backups are unaffected.")
+                    .setPositiveButton("Clear and turn off",(d,i)->{
+                        invalidateRequests();weather=null;news=null;weatherFailed=false;newsFailed=false;
+                        prefs.edit().remove("widget_weather_cache").remove("widget_news_cache")
+                            .putBoolean("widget_weather",false).putBoolean("widget_news",false).apply();
+                        handler.removeCallbacks(refreshTask);render();changed.run();
+                    }).setNegativeButton("Cancel",null).show();
+                if(index==7)new AlertDialog.Builder(activity).setTitle("Forget weather town?")
+                    .setMessage("Remove the selected town, coordinates and cached weather, and turn weather off. Previously exported or OS backups are unaffected.")
+                    .setPositiveButton("Forget town",(d,i)->{
+                        invalidateRequests();town="";latitude=0;longitude=0;weather=null;weatherFailed=false;
+                        prefs.edit().putString("widget_town","").putString("widget_lat","0").putString("widget_lon","0")
+                            .remove("widget_weather_cache").putBoolean("widget_weather",false).apply();
+                        render();changed.run();refresh(false);
+                    }).setNegativeButton("Cancel",null).show();
             }).setNegativeButton("Close",null).show();
     }
     private void weatherDetails(){
@@ -222,6 +238,7 @@ final class HomeWidgets {
                 searches.invalidate();final long search=searches.ticket();
                 worker.execute(()->{
                     JSONArray results=null;
+                    if(!active||!searches.accepts(search))return;
                     try{
                         results=new JSONObject(WidgetData.fetch("https://geocoding-api.open-meteo.com/v1/search?name="+
                             java.net.URLEncoder.encode(query,"UTF-8")+"&count=5&language=en&format=json")).optJSONArray("results");

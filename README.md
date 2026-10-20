@@ -91,7 +91,7 @@ Volume and media buttons retain their normal actions. Open dialogs pause the art
 
 ## Privacy
 
-The only requested permission is `INTERNET`, for optional weather and news. No device-location permission is used. News is enabled by default; the weather town is unset until selected. You can turn each widget off in **Home options → Widgets**.
+The only requested permission is `INTERNET`, for optional weather and news. No device-location permission is used. Weather and news are off until you enable them; the clock works locally. Explicit widget choices from earlier versions are retained. You can turn each widget off in **Home options → Widgets**.
 
 Feeds are fetched about every 30 minutes while Home is active, with local caching and visible update ages. Providers receive your public IP; weather requests include the selected town's coordinates. Opening a news article uses an external browser.
 
