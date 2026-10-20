@@ -29,7 +29,7 @@ public final class HomeActivity extends Activity {
     private View allAppsButton;
     private View headerView, lowerView, shadeView;
     private String focusedPackage;
-    private boolean compact;
+    private boolean compact,fitWallpaper;
     private boolean artworkVisible;
     private int swallowedKey = -1;
     private boolean swallowedTouch;
@@ -92,6 +92,7 @@ public final class HomeActivity extends Activity {
         String stored = getPreferences(0).getString("favourites", DEFAULTS);
         favourites.addAll(Arrays.asList(stored.split(",")));
         compact = getPreferences(0).getBoolean("compact", false);
+        fitWallpaper=getPreferences(0).getBoolean("wallpaper_fit",false);
         focusedPackage = getPreferences(0).getString("last_dock_package", null);
         artworkDelay = getPreferences(0).getLong("artwork_delay", 30000);
         if(artworkDelay!=0 && artworkDelay!=30000 && artworkDelay!=60000 && artworkDelay!=120000) artworkDelay=30000;
@@ -144,7 +145,7 @@ public final class HomeActivity extends Activity {
     private void build() {
         FrameLayout root=new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16,26,32));
-        background=new ImageView(this); background.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        background=new ImageView(this);applyWallpaperScale();
         root.addView(background,new FrameLayout.LayoutParams(-1,-1));
         View shade=new View(this);
         shadeView=shade;
@@ -357,7 +358,7 @@ public final class HomeActivity extends Activity {
             gallery.put("position",wallpaperDeck.position());
             gallery.put("image",wallpaperDeck.current());
             gallery.put("focusedPackage",focusedPackage==null?"":focusedPackage);
-            gallery.put("artDelay",artworkDelay);gallery.put("interval",rotation.interval());
+            gallery.put("artDelay",artworkDelay);gallery.put("interval",rotation.interval());gallery.put("fit",fitWallpaper);
             state.put("gallery",gallery);
         }
         return state;
@@ -423,10 +424,13 @@ public final class HomeActivity extends Activity {
             WallpaperDeck restoredDeck=null;
             long restoredDelay=artworkDelay;
             long restoredInterval=rotation.interval();
+            boolean restoredFit=fitWallpaper;
             String restoredFocus=null;
             if(gallery!=null){
                 restoredDelay=gallery.getLong("artDelay");
                 restoredInterval=gallery.optLong("interval",60000);
+                if(gallery.has("fit")&&!(gallery.get("fit") instanceof Boolean))throw new JSONException("Invalid wallpaper scale");
+                restoredFit=gallery.optBoolean("fit",false);
                 if(!RotationTimer.supported(restoredInterval))throw new JSONException("Invalid wallpaper interval");
                 if(restoredDelay!=0 && restoredDelay!=30000 && restoredDelay!=60000 && restoredDelay!=120000)
                     throw new JSONException("Invalid artwork delay");
@@ -442,6 +446,7 @@ public final class HomeActivity extends Activity {
             if(restoredDeck!=null){
                 wallpaperDeck=restoredDeck;artworkDelay=restoredDelay;
                 rotation.setInterval(restoredInterval,SystemClock.elapsedRealtime());
+                fitWallpaper=restoredFit;getPreferences(0).edit().putBoolean("wallpaper_fit",fitWallpaper).apply();applyWallpaperScale();
                 getPreferences(0).edit().putLong("wallpaper_interval",restoredInterval).apply();
                 getPreferences(0).edit().putLong("artwork_delay",artworkDelay).apply();
                 persistGallery();loadScene();
@@ -478,9 +483,7 @@ public final class HomeActivity extends Activity {
                 if(isDestroyed()){if(result!=null)result.recycle();return;}
                 if(result!=null){
                     background.setImageBitmap(result);
-                    String caption=name.startsWith("lake")?"Still waters  ·  Bonnie Moreland":
-                        name.startsWith("forest")?"Forest light  ·  SpessiG":
-                        "Your collection  ·  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');
+                    String caption="Your collection  \u00b7  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');
                     scene.setText(caption);
                     persistGallery();
                     android.util.Log.i("QuietHome","Wallpaper: "+name);
@@ -501,7 +504,18 @@ public final class HomeActivity extends Activity {
             .putInt("wallpaper_position",wallpaperDeck.position())
             .putString("wallpaper_current",wallpaperDeck.current()).apply();
     }
+    private void applyWallpaperScale(){background.setScaleType(fitWallpaper?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);}
     private void wallpaperOptions(){
+        new AlertDialog.Builder(this).setTitle("Wallpaper settings").setItems(new String[]{"Timing","Picture framing"},(d,i)->{
+            if(i==0)wallpaperTiming();
+            if(i==1)new AlertDialog.Builder(this).setTitle("Picture framing")
+                .setSingleChoiceItems(new String[]{"Fill screen (crop edges)","Fit whole picture (may show borders)"},fitWallpaper?1:0,(dialog,index)->{
+                    fitWallpaper=index==1;getPreferences(0).edit().putBoolean("wallpaper_fit",fitWallpaper).apply();
+                    applyWallpaperScale();dialog.dismiss();
+                }).setNegativeButton("Cancel",null).show();
+        }).setNegativeButton("Close",null).show();
+    }
+    private void wallpaperTiming(){
         final long[] intervals={0,60000,300000,900000};
         int selected=0;for(int i=0;i<intervals.length;i++)if(intervals[i]==rotation.interval())selected=i;
         new AlertDialog.Builder(this).setTitle("Wallpaper timing")

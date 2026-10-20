@@ -43,3 +43,11 @@ Research: Android [SystemClock](https://developer.android.com/reference/android/
 Added manual-only/1/5/15-minute rotation, saved in preferences and settings exports. A small tested timer preserves the remaining interval while Home is paused. Empty and single-image collections avoid redundant automatic decodes. Manual advance remains available.
 
 Validation: host tests simulate interval boundaries, an hour away, repeated lifecycle events, paused rotation and invalid intervals; host suite and APK build passed. Installed on the TV emulator, inspected the timing picker and verified the paused selection persists on reopening. Long-duration visual rotation is checked with synthetic images in the next loop.
+
+## 6. Fit or fill your pictures
+
+Research: Android [ImageView scale types](https://developer.android.com/reference/android/widget/ImageView.ScaleType) distinguish aspect-preserving fit from centre crop; [bitmap guidance](https://developer.android.com/topic/performance/graphics/load-bitmap) reinforces retaining bounded background decoding.
+
+Added Picture framing under Wallpaper settings: Fill screen or Fit whole picture. It updates the existing bitmap without another decode and is included in backups. Removed filename-based artist guesses from captions; naming a file forest or lake does not establish authorship.
+
+Validation: host tests and APK build passed. Used three synthetic square test images, excluded from Git, in the API 31 TV emulator. Inspected screenshots showing crop versus full borders. Automatic one-minute advance, a paused image held over a minute, and manual advance while paused passed. No personal wallpaper collection was used or published.
