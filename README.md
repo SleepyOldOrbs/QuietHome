@@ -16,7 +16,7 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **Artwork mode.** Fade the interface away after 30 seconds, one minute or two minutes. The first navigation or OK press brings the controls back without accidentally launching an app.
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.
 - **Clock and date.** Follow the TV's local time without a network request.
-- **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius.
+- **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius or Fahrenheit. Unit changes work offline.
 - **Optional BBC news.** Choose UK, World or Technology. Read headlines and the publisher's short summaries with the remote.
 - **Local settings backups.** Save and restore the dock, gallery state, artwork delay and widget preferences.
 - **TV input shortcuts.** List the available passthrough inputs using the TV's own labels.

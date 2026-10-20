@@ -12,9 +12,9 @@ public final class WidgetDataTest {
     public static void main(String[] args) throws Exception{
         String good="{\"current\":{\"temperature_2m\":12.6,\"weather_code\":63,\"time\":\"2026-10-20T16:15\"},\"daily\":{\"temperature_2m_max\":[15.2],\"temperature_2m_min\":[7.8]}}";
         JSONObject weather=WidgetData.weather(good);
-        check(weather.getInt("temperature")==13,"temperature rounding");
+        check(weather.getDouble("temperature")==12.6,"preserve precision before unit conversion");
         check(weather.getString("condition").equals("Rain"),"WMO code");
-        check(weather.getInt("high")==15&&weather.getInt("low")==8,"daily range");
+        check(weather.getDouble("high")==15.2&&weather.getDouble("low")==7.8,"daily range");
         try{WidgetData.weather(good.replace("12.6","null"));throw new AssertionError("null weather accepted");}
         catch(JSONException expected){}
         try{WidgetData.weather(good.replace("12.6","500"));throw new AssertionError("invalid temperature accepted");}

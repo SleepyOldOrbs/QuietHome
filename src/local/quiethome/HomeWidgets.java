@@ -92,6 +92,8 @@ final class HomeWidgets {
         try{return new JSONObject(prefs.getString(key,""));}catch(Exception e){return null;}
     }
     private boolean enabled(String key){return prefs.getBoolean("widget_"+key,"clock".equals(key));}
+    private boolean fahrenheit(){return prefs.getBoolean("widget_fahrenheit",false);}
+    private String degrees(String field){return DisplayFormat.degrees(weather.optDouble(field,Double.NaN),fahrenheit());}
     boolean clockEnabled(){return enabled("clock");}
     void linkDock(View dock){
         if(dock==null)return;
@@ -121,9 +123,9 @@ final class HomeWidgets {
             temperature.setText("—");
             conditions.setText(town.isEmpty()?"Choose a town to get started":weatherFailed?"Weather unavailable":"Loading weather…");
         }else{
-            temperature.setText(weather.optLong("temperature")+"°C  ·  "+weather.optString("condition"));
+            temperature.setText(degrees("temperature")+"  ·  "+weather.optString("condition"));
             temperature.setTextSize(24);
-            conditions.setText("High "+weather.optLong("high")+"°  /  Low "+weather.optLong("low")+"°");
+            conditions.setText("High "+degrees("high")+"  /  Low "+degrees("low")+"");
         }
         weatherStatus.setText("Open-Meteo  ·  "+status(weather,weatherFailed));
     }
@@ -175,7 +177,7 @@ final class HomeWidgets {
     }
     void options(Runnable changed){
         new AlertDialog.Builder(activity).setTitle("Widgets").setItems(
-            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location","Clear feed data and turn feeds off","Forget weather town"},
+            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location","Clear feed data and turn feeds off","Forget weather town","Temperature units"},
             (dialog,index)->{
                 if(index==0){
                     boolean[] selected={enabled("clock"),enabled("weather"),enabled("news")};
@@ -197,9 +199,13 @@ final class HomeWidgets {
                 if(index==2)readNews();
                 if(index==3){refresh(true);Toast.makeText(activity,busy?"Refreshing widgets…":"Enable weather or news first.",Toast.LENGTH_SHORT).show();}
                 if(index==4)new AlertDialog.Builder(activity).setTitle("About these widgets")
-                    .setMessage("Clock: this TV's time and time zone.\n\nWeather: "+town+", Celsius. Modelled conditions from Open-Meteo (CC BY 4.0), not a local sensor. Location lookup uses GeoNames via Open-Meteo.\nhttps://open-meteo.com/\n\nNews: BBC's published headlines and summaries. No AI rewriting.\nhttps://www.bbc.co.uk/news\n\nFeeds refresh about every 30 minutes while Home is open. Last successful results stay on this TV. Providers receive your IP address; weather requests include the chosen town's coordinates. No location access, account, analytics or advertising SDKs.")
+                    .setMessage("Clock: this TV's time and time zone.\n\nWeather: "+town+", "+(fahrenheit()?"Fahrenheit":"Celsius")+". Modelled conditions from Open-Meteo (CC BY 4.0), not a local sensor. Location lookup uses GeoNames via Open-Meteo.\nhttps://open-meteo.com/\n\nNews: BBC's published headlines and summaries. No AI rewriting.\nhttps://www.bbc.co.uk/news\n\nFeeds refresh about every 30 minutes while Home is open. Last successful results stay on this TV. Providers receive your IP address; weather requests include the chosen town's coordinates. No location access, account, analytics or advertising SDKs.")
                     .setPositiveButton("Close",null).show();
                 if(index==5)chooseTown();
+                if(index==8)new AlertDialog.Builder(activity).setTitle("Temperature units")
+                    .setSingleChoiceItems(new String[]{"Celsius","Fahrenheit"},fahrenheit()?1:0,(d,i)->{
+                        prefs.edit().putBoolean("widget_fahrenheit",i==1).apply();d.dismiss();render();
+                    }).setNegativeButton("Cancel",null).show();
                 if(index==6)new AlertDialog.Builder(activity).setTitle("Clear feed data?")
                     .setMessage("Remove cached weather and news from this app and turn both feeds off. Your town and edition stay selected. Previously exported or OS backups are unaffected.")
                     .setPositiveButton("Clear and turn off",(d,i)->{
@@ -220,8 +226,8 @@ final class HomeWidgets {
     }
     private void weatherDetails(){
         if(town.isEmpty()){chooseTown();return;}
-        String detail=weather==null?"Weather has not loaded yet.":weather.optLong("temperature")+"°C · "+weather.optString("condition")+
-            "\nHigh "+weather.optLong("high")+"° / Low "+weather.optLong("low")+"°\nModel time: "+weather.optString("time").replace('T',' ')+"\n"+status(weather,weatherFailed);
+        String detail=weather==null?"Weather has not loaded yet.":degrees("temperature")+" · "+weather.optString("condition")+
+            "\nHigh "+degrees("high")+" / Low "+degrees("low")+"\nModel time: "+weather.optString("time").replace('T',' ')+"\n"+status(weather,weatherFailed);
         new AlertDialog.Builder(activity).setTitle(town+" weather").setMessage(detail+"\n\nModelled weather by Open-Meteo (CC BY 4.0).\nhttps://open-meteo.com/")
             .setPositiveButton("Close",null).show();
     }
@@ -289,10 +295,11 @@ final class HomeWidgets {
     }
     JSONObject state() throws JSONException{
         return new JSONObject().put("clock",enabled("clock")).put("weather",enabled("weather"))
-            .put("news",enabled("news")).put("source",source)
+            .put("news",enabled("news")).put("source",source).put("fahrenheit",fahrenheit())
             .put("town",town).put("latitude",latitude).put("longitude",longitude);
     }
     static void validate(JSONObject state) throws JSONException {
+        if(state.has("fahrenheit")&&!(state.get("fahrenheit") instanceof Boolean))throw new JSONException("Invalid temperature unit");
         state.getBoolean("clock");state.getBoolean("weather");state.getBoolean("news");
         int source=state.getInt("source");if(source<0||source>2)throw new JSONException("Unknown news edition");
         String town=state.getString("town");
@@ -305,7 +312,7 @@ final class HomeWidgets {
         source=state.getInt("source");news=null;weather=null;nextAttempt=0;
         town=state.getString("town");latitude=state.getDouble("latitude");longitude=state.getDouble("longitude");
         prefs.edit().putBoolean("widget_clock",state.getBoolean("clock")).putBoolean("widget_weather",state.getBoolean("weather"))
-            .putBoolean("widget_news",state.getBoolean("news")).putInt("widget_news_source",source)
+            .putBoolean("widget_news",state.getBoolean("news")).putBoolean("widget_fahrenheit",state.optBoolean("fahrenheit",false)).putInt("widget_news_source",source)
             .putString("widget_town",town).putString("widget_lat",Double.toString(latitude)).putString("widget_lon",Double.toString(longitude))
             .remove("widget_news_cache").remove("widget_weather_cache").apply();
         render();refresh(false);

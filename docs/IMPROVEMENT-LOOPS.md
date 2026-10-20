@@ -19,3 +19,11 @@ Research: Android's [permission minimisation guidance](https://developer.android
 Weather/news now default off; explicit prior choices survive upgrades. The widget chooser identifies providers. New actions clear feed caches and turn feeds off, or forget the town/coordinates and disable weather. Existing exported/OS backups are explicitly outside these controls. Queued town searches also check lifecycle state before contacting the provider.
 
 Validation: host tests and APK build passed. Installed on an isolated Android TV API 31 emulator; inspected fresh-home and widget-choice screenshots. Enabled BBC News, used Clear and turn off, then reopened the chooser and verified both online widgets off. A message/list conflict found in the first UI check was corrected before publication. This is not a network packet-capture audit.
+
+## 3. Celsius and Fahrenheit
+
+Research: [Open-Meteo forecast documentation](https://open-meteo.com/en/docs) specifies Celsius as the default temperature unit. Keep one Celsius cache and convert locally instead of fetching the same forecast again.
+
+Added a Temperature units chooser; current/high/low values and details use it. Preserve provider precision until display rounding. The optional backup field defaults to Celsius for older backups and rejects non-boolean values.
+
+Validation: host tests cover freezing/boiling points, negative temperatures, convert-before-rounding and invalid values. Android parser/security/settings tests and all three live provider checks passed on the API 31 TV emulator. APK built and installed; inspected the unit picker screenshot and verified Fahrenheit remained selected on reopening.

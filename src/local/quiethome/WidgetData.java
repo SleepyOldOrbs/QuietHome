@@ -54,8 +54,8 @@ final class WidgetData {
             throw new JSONException("Invalid temperature");
         String time=current.getString("time");
         if(!time.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}"))throw new JSONException("Invalid weather time");
-        return new JSONObject().put("temperature",Math.round(temp)).put("high",Math.round(high))
-            .put("low",Math.round(low)).put("condition",condition(current.getInt("weather_code")))
+        return new JSONObject().put("temperature",temp).put("high",high)
+            .put("low",low).put("condition",condition(current.getInt("weather_code")))
             .put("time",time).put("at",System.currentTimeMillis());
     }
     static String condition(int code){
