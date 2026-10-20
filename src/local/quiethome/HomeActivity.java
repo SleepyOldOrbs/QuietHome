@@ -34,14 +34,12 @@ public final class HomeActivity extends Activity {
     private int swallowedKey = -1;
     private boolean swallowedTouch;
     private long artworkDelay = 30000;
-    private long rotationRemaining = 60000;
+    private final RotationTimer rotation=new RotationTimer(60000);
     private final ArrayList<App> apps = new ArrayList<>();
     private final ArrayList<String> favourites = new ArrayList<>();
     private String[] wallpapers;
     private WallpaperDeck wallpaperDeck;
     private boolean active, loading;
-    private long nextWallpaper;
-    private static final long ROTATION_MS = 60000;
     private static final String DEFAULTS = "com.google.android.youtube.tv,com.sony.dtv.tvx,org.jellyfin.androidtv,com.netflix.ninja";
     private final Runnable enterArtwork = () -> {
         if(active && hasWindowFocus() && artworkDelay>0) setArtworkVisible(true);
@@ -65,9 +63,9 @@ public final class HomeActivity extends Activity {
                 clock.setText(display);
             }
             widgets.render();
-            if (wallpapers.length>0 && SystemClock.elapsedRealtime() >= nextWallpaper && !loading) nextScene();
+            if (wallpapers.length>1 && rotation.due(SystemClock.elapsedRealtime()) && !loading) nextScene();
             long clockDelay = 60000 - (System.currentTimeMillis() % 60000);
-            long sceneDelay = wallpapers.length==0?clockDelay:Math.max(1000, nextWallpaper-SystemClock.elapsedRealtime());
+            long sceneDelay = wallpapers.length<2?clockDelay:Math.max(1000,rotation.delay(SystemClock.elapsedRealtime()));
             handler.postDelayed(this, Math.min(clockDelay, sceneDelay));
         }
     };
@@ -88,6 +86,8 @@ public final class HomeActivity extends Activity {
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        long interval=getPreferences(0).getLong("wallpaper_interval",60000);
+        rotation.setInterval(RotationTimer.supported(interval)?interval:60000,SystemClock.elapsedRealtime());
         scanApps();
         String stored = getPreferences(0).getString("favourites", DEFAULTS);
         favourites.addAll(Arrays.asList(stored.split(",")));
@@ -284,7 +284,7 @@ public final class HomeActivity extends Activity {
     }
     private void homeOptions() {
         new AlertDialog.Builder(this).setTitle("Home options").setItems(
-            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets","Clock format"},(d,i)->{
+            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets","Clock format","Wallpaper settings"},(d,i)->{
                 if(i==0)arrangeDock();
                 if(i==1)new AlertDialog.Builder(this).setTitle("Tile size")
                     .setSingleChoiceItems(new String[]{"Compact","Standard"},compact?0:1,(dialog,index)->{
@@ -296,6 +296,7 @@ public final class HomeActivity extends Activity {
                 }
                 if(i==3)chooseBackup();
                 if(i==4)artworkOptions();
+                if(i==7)wallpaperOptions();
                 if(i==6)widgets.clockOptions(()->{handler.removeCallbacks(tick);if(active)handler.post(tick);});
                 if(i==5)widgets.options(()->{
                     clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
@@ -356,7 +357,7 @@ public final class HomeActivity extends Activity {
             gallery.put("position",wallpaperDeck.position());
             gallery.put("image",wallpaperDeck.current());
             gallery.put("focusedPackage",focusedPackage==null?"":focusedPackage);
-            gallery.put("artDelay",artworkDelay);
+            gallery.put("artDelay",artworkDelay);gallery.put("interval",rotation.interval());
             state.put("gallery",gallery);
         }
         return state;
@@ -421,9 +422,12 @@ public final class HomeActivity extends Activity {
             JSONObject gallery=state.optJSONObject("gallery");
             WallpaperDeck restoredDeck=null;
             long restoredDelay=artworkDelay;
+            long restoredInterval=rotation.interval();
             String restoredFocus=null;
             if(gallery!=null){
                 restoredDelay=gallery.getLong("artDelay");
+                restoredInterval=gallery.optLong("interval",60000);
+                if(!RotationTimer.supported(restoredInterval))throw new JSONException("Invalid wallpaper interval");
                 if(restoredDelay!=0 && restoredDelay!=30000 && restoredDelay!=60000 && restoredDelay!=120000)
                     throw new JSONException("Invalid artwork delay");
                 restoredFocus=gallery.optString("focusedPackage","");
@@ -437,6 +441,8 @@ public final class HomeActivity extends Activity {
             favourites.clear();favourites.addAll(restored);compact=restoredCompact;focusedPackage=restoredFocus;
             if(restoredDeck!=null){
                 wallpaperDeck=restoredDeck;artworkDelay=restoredDelay;
+                rotation.setInterval(restoredInterval,SystemClock.elapsedRealtime());
+                getPreferences(0).edit().putLong("wallpaper_interval",restoredInterval).apply();
                 getPreferences(0).edit().putLong("artwork_delay",artworkDelay).apply();
                 persistGallery();loadScene();
             }
@@ -452,7 +458,7 @@ public final class HomeActivity extends Activity {
         wallpaperDeck.next(); loadScene();
     }
     private void loadScene() {
-        nextWallpaper=SystemClock.elapsedRealtime()+ROTATION_MS;
+        rotation.restart(SystemClock.elapsedRealtime());
         if(wallpapers.length==0||loading)return;
         loading=true;
         final String name=wallpaperDeck.current();
@@ -494,6 +500,16 @@ public final class HomeActivity extends Activity {
             .putString("wallpaper_order",new JSONArray(wallpaperDeck.order()).toString())
             .putInt("wallpaper_position",wallpaperDeck.position())
             .putString("wallpaper_current",wallpaperDeck.current()).apply();
+    }
+    private void wallpaperOptions(){
+        final long[] intervals={0,60000,300000,900000};
+        int selected=0;for(int i=0;i<intervals.length;i++)if(intervals[i]==rotation.interval())selected=i;
+        new AlertDialog.Builder(this).setTitle("Wallpaper timing")
+            .setSingleChoiceItems(new String[]{"Paused (manual changes only)","Every minute","Every 5 minutes","Every 15 minutes"},selected,(d,i)->{
+                rotation.setInterval(intervals[i],SystemClock.elapsedRealtime());
+                getPreferences(0).edit().putLong("wallpaper_interval",intervals[i]).apply();
+                d.dismiss();handler.removeCallbacks(tick);if(active)handler.post(tick);
+            }).setNegativeButton("Cancel",null).show();
     }
     private void artworkOptions(){
         final long[] delays={0,30000,60000,120000};
@@ -572,12 +588,12 @@ public final class HomeActivity extends Activity {
     }
     @Override protected void onResume(){
         super.onResume();active=true;swallowedKey=-1;swallowedTouch=false;
-        nextWallpaper=SystemClock.elapsedRealtime()+rotationRemaining;
+        rotation.resume(SystemClock.elapsedRealtime());
         setArtworkVisible(false);handler.removeCallbacks(tick);handler.post(tick);
         widgets.start();
     }
     @Override protected void onPause(){
-        rotationRemaining=Math.max(1000,nextWallpaper-SystemClock.elapsedRealtime());
+        rotation.pause(SystemClock.elapsedRealtime());
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         widgets.stop();
         persistGallery();super.onPause();

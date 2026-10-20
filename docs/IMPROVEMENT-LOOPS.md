@@ -35,3 +35,11 @@ Research: Android [DateFormat](https://developer.android.com/reference/android/t
 Added Home options > Clock format with system/12-hour/24-hour choices. The clock uses the current time zone and locale, and changes immediately. Backups include the optional clock mode; older backups follow the TV setting.
 
 Validation: host preference-resolution tests; Android tests for midnight, noon and 23:59; parser/live-feed tests and APK build passed. Installed on the API 31 TV emulator and inspected the home screenshot showing the chosen 12-hour clock. No TV system clock setting is modified.
+
+## 5. Wallpaper timing and pause
+
+Research: Android [SystemClock](https://developer.android.com/reference/android/os/SystemClock) documents monotonic elapsed time; [Handler](https://developer.android.com/reference/android/os/Handler) supports removing scheduled callbacks. Wallpaper time should count foreground viewing, independently of wall-clock changes.
+
+Added manual-only/1/5/15-minute rotation, saved in preferences and settings exports. A small tested timer preserves the remaining interval while Home is paused. Empty and single-image collections avoid redundant automatic decodes. Manual advance remains available.
+
+Validation: host tests simulate interval boundaries, an hour away, repeated lifecycle events, paused rotation and invalid intervals; host suite and APK build passed. Installed on the TV emulator, inspected the timing picker and verified the paused selection persists on reopening. Long-duration visual rotation is checked with synthetic images in the next loop.
