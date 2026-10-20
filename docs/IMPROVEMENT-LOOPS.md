@@ -27,3 +27,11 @@ Research: [Open-Meteo forecast documentation](https://open-meteo.com/en/docs) sp
 Added a Temperature units chooser; current/high/low values and details use it. Preserve provider precision until display rounding. The optional backup field defaults to Celsius for older backups and rejects non-boolean values.
 
 Validation: host tests cover freezing/boiling points, negative temperatures, convert-before-rounding and invalid values. Android parser/security/settings tests and all three live provider checks passed on the API 31 TV emulator. APK built and installed; inspected the unit picker screenshot and verified Fahrenheit remained selected on reopening.
+
+## 4. Clock format follows the viewer
+
+Research: Android [DateFormat](https://developer.android.com/reference/android/text/format/DateFormat) provides the system 24-hour preference and locale-appropriate patterns.
+
+Added Home options > Clock format with system/12-hour/24-hour choices. The clock uses the current time zone and locale, and changes immediately. Backups include the optional clock mode; older backups follow the TV setting.
+
+Validation: host preference-resolution tests; Android tests for midnight, noon and 23:59; parser/live-feed tests and APK build passed. Installed on the API 31 TV emulator and inspected the home screenshot showing the chosen 12-hour clock. No TV system clock setting is modified.

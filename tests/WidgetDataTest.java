@@ -10,6 +10,13 @@ public final class WidgetDataTest {
         catch(java.io.IOException expected){}
     }
     public static void main(String[] args) throws Exception{
+        java.text.SimpleDateFormat twelve=new java.text.SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(java.util.Locale.US,DisplayFormat.clockSkeleton(1,true)),java.util.Locale.US);
+        java.text.SimpleDateFormat twentyFour=new java.text.SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(java.util.Locale.US,DisplayFormat.clockSkeleton(2,false)),java.util.Locale.US);
+        twelve.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));twentyFour.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        check(twelve.format(new java.util.Date(0)).replace('\u202f',' ').equals("12:00 AM"),"12h midnight");
+        check(twelve.format(new java.util.Date(12*3600000L)).replace('\u202f',' ').equals("12:00 PM"),"12h noon");
+        check(twentyFour.format(new java.util.Date(0)).equals("00:00"),"24h midnight");
+        check(twentyFour.format(new java.util.Date(23*3600000L+59*60000L)).equals("23:59"),"24h end of day");
         String good="{\"current\":{\"temperature_2m\":12.6,\"weather_code\":63,\"time\":\"2026-10-20T16:15\"},\"daily\":{\"temperature_2m_max\":[15.2],\"temperature_2m_min\":[7.8]}}";
         JSONObject weather=WidgetData.weather(good);
         check(weather.getDouble("temperature")==12.6,"preserve precision before unit conversion");

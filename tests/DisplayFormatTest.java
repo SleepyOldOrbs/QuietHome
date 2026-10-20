@@ -3,6 +3,10 @@ package local.quiethome;
 public final class DisplayFormatTest {
     static void check(String actual,String expected){if(!actual.equals(expected))throw new AssertionError(actual+" != "+expected);}
     public static void main(String[] args){
+        check(DisplayFormat.clockSkeleton(0,true),"Hm");
+        check(DisplayFormat.clockSkeleton(0,false),"hm");
+        check(DisplayFormat.clockSkeleton(1,true),"hm");
+        check(DisplayFormat.clockSkeleton(2,false),"Hm");
         check(DisplayFormat.degrees(0,true),"32\u00b0F");
         check(DisplayFormat.degrees(100,true),"212\u00b0F");
         check(DisplayFormat.degrees(-40,true),"-40\u00b0F");

@@ -35,7 +35,6 @@ public final class HomeActivity extends Activity {
     private boolean swallowedTouch;
     private long artworkDelay = 30000;
     private long rotationRemaining = 60000;
-    private final SimpleDateFormat clockFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private final ArrayList<App> apps = new ArrayList<>();
     private final ArrayList<String> favourites = new ArrayList<>();
     private String[] wallpapers;
@@ -55,6 +54,8 @@ public final class HomeActivity extends Activity {
     private final Runnable tick = new Runnable() {
         public void run() {
             if (!active) return;
+            SimpleDateFormat clockFormat=new SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(
+                Locale.getDefault(),DisplayFormat.clockSkeleton(widgets.clockMode(),android.text.format.DateFormat.is24HourFormat(HomeActivity.this))),Locale.getDefault());
             clockFormat.setTimeZone(TimeZone.getDefault());
             String time = clockFormat.format(new Date())+"\n"+
                 new SimpleDateFormat("EEEE, d MMMM",Locale.getDefault()).format(new Date());
@@ -283,7 +284,7 @@ public final class HomeActivity extends Activity {
     }
     private void homeOptions() {
         new AlertDialog.Builder(this).setTitle("Home options").setItems(
-            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets"},(d,i)->{
+            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets","Clock format"},(d,i)->{
                 if(i==0)arrangeDock();
                 if(i==1)new AlertDialog.Builder(this).setTitle("Tile size")
                     .setSingleChoiceItems(new String[]{"Compact","Standard"},compact?0:1,(dialog,index)->{
@@ -295,6 +296,7 @@ public final class HomeActivity extends Activity {
                 }
                 if(i==3)chooseBackup();
                 if(i==4)artworkOptions();
+                if(i==6)widgets.clockOptions(()->{handler.removeCallbacks(tick);if(active)handler.post(tick);});
                 if(i==5)widgets.options(()->{
                     clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
                     rebuildDock();
