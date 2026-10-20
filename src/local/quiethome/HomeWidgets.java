@@ -23,6 +23,7 @@ final class HomeWidgets {
     private volatile boolean active;
     private boolean busy,destroyed,weatherFailed,newsFailed;
     private long nextAttempt;
+    private final RequestGate feeds=new RequestGate(), searches=new RequestGate();
     private int source;
     private String town="";
     private double latitude,longitude;
@@ -99,7 +100,8 @@ final class HomeWidgets {
         dock.setNextFocusUpId(up);
     }
     void start(){active=true;render();refresh(false);}
-    void stop(){active=false;handler.removeCallbacks(refreshTask);}
+    void stop(){active=false;invalidateRequests();handler.removeCallbacks(refreshTask);}
+    private void invalidateRequests(){feeds.invalidate();searches.invalidate();nextAttempt=0;}
     void destroy(){destroyed=true;stop();worker.shutdownNow();}
     void render(){
         newsCard.setVisibility(enabled("news")?View.VISIBLE:View.GONE);
@@ -141,21 +143,22 @@ final class HomeWidgets {
         boolean fetchNews=enabled("news") &&
             (force||news==null||System.currentTimeMillis()-news.optLong("at")>=INTERVAL);
         if(!fetchWeather&&!fetchNews){nextAttempt=now+60000;handler.postDelayed(refreshTask,60000);return;}
-        busy=true;final int requestedSource=source;final String requestedTown=town;
+        busy=true;final long request=feeds.ticket();final int requestedSource=source;final String requestedTown=town;
         final double requestedLat=latitude,requestedLon=longitude;
         worker.execute(()->{
             JSONObject newWeather=null,newNews=null;boolean wf=false,nf=false;
-            if(active&&fetchWeather)try{
+            if(active&&feeds.accepts(request)&&fetchWeather)try{
                 String url=String.format(Locale.US,
                     "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto",
                     requestedLat,requestedLon);
                 newWeather=WidgetData.weather(WidgetData.fetch(url)).put("town",requestedTown);
             }catch(Exception e){wf=true;}
-            if(active&&fetchNews)try{newNews=WidgetData.news(WidgetData.fetch(WidgetData.NEWS_URLS[requestedSource]),requestedSource);}
+            if(active&&feeds.accepts(request)&&fetchNews)try{newNews=WidgetData.news(WidgetData.fetch(WidgetData.NEWS_URLS[requestedSource]),requestedSource);}
             catch(Exception e){nf=true;}
             final JSONObject w=newWeather,n=newNews;final boolean weatherError=wf,newsError=nf;
             handler.post(()->{
                 busy=false;if(destroyed)return;
+                if(!active||!feeds.accepts(request)){if(active)refresh(false);return;}
                 SharedPreferences.Editor edit=prefs.edit();
                 if(w!=null&&town.equals(requestedTown)){weather=w;edit.putString("widget_weather_cache",w.toString());}
                 if(n!=null&&source==requestedSource){news=n;edit.putString("widget_news_cache",n.toString());}
@@ -179,6 +182,7 @@ final class HomeWidgets {
                     new AlertDialog.Builder(activity).setTitle("Show on Home")
                         .setMultiChoiceItems(new String[]{"Clock and date","Weather","BBC News"},selected,(d,i,value)->selected[i]=value)
                         .setPositiveButton("Save",(d,i)->{
+                            invalidateRequests();
                             prefs.edit().putBoolean("widget_clock",selected[0]).putBoolean("widget_weather",selected[1])
                                 .putBoolean("widget_news",selected[2]).apply();
                             render();changed.run();refresh(false);
@@ -186,7 +190,7 @@ final class HomeWidgets {
                 }
                 if(index==1)new AlertDialog.Builder(activity).setTitle("News edition")
                     .setSingleChoiceItems(WidgetData.NEWS_NAMES,source,(d,i)->{
-                        source=i;news=null;newsFailed=false;nextAttempt=0;
+                        invalidateRequests();source=i;news=null;newsFailed=false;nextAttempt=0;
                         prefs.edit().putInt("widget_news_source",source).remove("widget_news_cache").apply();
                         d.dismiss();render();refresh(true);
                     }).setNegativeButton("Cancel",null).show();
@@ -215,6 +219,7 @@ final class HomeWidgets {
                 String query=input.getText().toString().trim();
                 if(query.length()<2){Toast.makeText(activity,"Enter at least two letters.",Toast.LENGTH_LONG).show();return;}
                 Toast.makeText(activity,"Finding matching towns…",Toast.LENGTH_SHORT).show();
+                searches.invalidate();final long search=searches.ticket();
                 worker.execute(()->{
                     JSONArray results=null;
                     try{
@@ -223,7 +228,7 @@ final class HomeWidgets {
                     }catch(Exception ignored){}
                     final JSONArray matches=results;
                     handler.post(()->{
-                        if(destroyed||!active)return;
+                        if(destroyed||!active||!searches.accepts(search))return;
                         if(matches==null||matches.length()==0){
                             Toast.makeText(activity,"No towns found. Check the connection and try again.",Toast.LENGTH_LONG).show();return;
                         }
@@ -233,11 +238,12 @@ final class HomeWidgets {
                             names[n]=place.optString("name")+" · "+place.optString("admin1")+" · "+place.optString("country");
                         }
                         new AlertDialog.Builder(activity).setTitle("Choose your town").setItems(names,(dialog,index)->{
+                            if(!active||!searches.accepts(search))return;
                             JSONObject place=matches.optJSONObject(index);
                             try{
                                 double lat=place.getDouble("latitude"),lon=place.getDouble("longitude");
                                 if(!Double.isFinite(lat)||!Double.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)throw new JSONException("Invalid place");
-                                town=place.getString("name");latitude=lat;longitude=lon;
+                                invalidateRequests();town=place.getString("name");latitude=lat;longitude=lon;
                                 weather=null;weatherFailed=false;nextAttempt=0;
                                 prefs.edit().putString("widget_town",town).putString("widget_lat",Double.toString(lat))
                                     .putString("widget_lon",Double.toString(lon)).remove("widget_weather_cache").apply();
@@ -278,7 +284,7 @@ final class HomeWidgets {
             throw new JSONException("Invalid town");
     }
     void restore(JSONObject state) throws JSONException {
-        validate(state);
+        validate(state);invalidateRequests();
         source=state.getInt("source");news=null;weather=null;nextAttempt=0;
         town=state.getString("town");latitude=state.getDouble("latitude");longitude=state.getDouble("longitude");
         prefs.edit().putBoolean("widget_clock",state.getBoolean("clock")).putBoolean("widget_weather",state.getBoolean("weather"))
