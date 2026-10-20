@@ -54,7 +54,9 @@ The original launcher must still be enabled. QuietHome can remain installed and 
 
 ## Save QuietHome settings
 
-Use **Home options → Save backup**. To restore, use **Home options → Restore backup**; the app saves the current settings before applying a validated snapshot.
+Use **Home options → Save backup**. To restore, use **Home options → Restore backup**; the app validates the entire snapshot and saves the current settings before applying it. Schema-1 backups from older versions remain supported. Empty docks and favourites not installed on this device are valid; unavailable entries retain their order and appear when the app becomes available.
+
+New optional fields cover temperature units, clock format, wallpaper timing and framing. Older widget/gallery snapshots use Celsius, system clock format, one-minute rotation and fill framing for fields they do not contain. Missing whole widget/gallery sections leave that part of the current configuration in place.
 
 On typical devices the files are under:
 

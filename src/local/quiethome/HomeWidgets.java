@@ -305,16 +305,7 @@ final class HomeWidgets {
             .put("news",enabled("news")).put("source",source).put("fahrenheit",fahrenheit()).put("clockMode",clockMode())
             .put("town",town).put("latitude",latitude).put("longitude",longitude);
     }
-    static void validate(JSONObject state) throws JSONException {
-        if(state.has("clockMode")&&(!(state.get("clockMode") instanceof Number)||state.getDouble("clockMode")!=state.getInt("clockMode")||state.getInt("clockMode")<0||state.getInt("clockMode")>2))throw new JSONException("Invalid clock format");
-        if(state.has("fahrenheit")&&!(state.get("fahrenheit") instanceof Boolean))throw new JSONException("Invalid temperature unit");
-        state.getBoolean("clock");state.getBoolean("weather");state.getBoolean("news");
-        int source=state.getInt("source");if(source<0||source>2)throw new JSONException("Unknown news edition");
-        String town=state.getString("town");
-        double lat=state.getDouble("latitude"),lon=state.getDouble("longitude");
-        if(town.length()>120||!Double.isFinite(lat)||!Double.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)
-            throw new JSONException("Invalid town");
-    }
+    static void validate(JSONObject state) throws JSONException {SettingsBackup.validateWidgets(state);}
     void restore(JSONObject state) throws JSONException {
         validate(state);invalidateRequests();
         source=state.getInt("source");news=null;weather=null;nextAttempt=0;

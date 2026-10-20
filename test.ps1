@@ -20,11 +20,12 @@ if(!$DeviceSerial){return}
 if(!$Sdk){throw 'Device tests require -Sdk or ANDROID_HOME.'}
 # Explicit opt-in: pushes a test DEX to the selected authorised device and fetches public feeds.
 $android=Join-Path $Sdk "platforms/android-$Api/android.jar"
-& "$Jdk/bin/javac$suffix" -encoding UTF-8 -source 8 -target 8 -classpath "$android$([IO.Path]::PathSeparator)$build/classes" -d "$build/classes" "$PSScriptRoot/src/local/quiethome/WidgetData.java" "$PSScriptRoot/src/local/quiethome/HomeWidgets.java" "$PSScriptRoot/tests/WidgetDataTest.java"; Check
+& "$Jdk/bin/javac$suffix" -encoding UTF-8 -source 8 -target 8 -classpath "$android$([IO.Path]::PathSeparator)$build/classes" -d "$build/classes" "$PSScriptRoot/src/local/quiethome/SettingsBackup.java" "$PSScriptRoot/tests/SettingsBackupTest.java" "$PSScriptRoot/src/local/quiethome/WidgetData.java" "$PSScriptRoot/src/local/quiethome/HomeWidgets.java" "$PSScriptRoot/tests/WidgetDataTest.java"; Check
 $classes=@(Get-ChildItem "$build/classes" -Filter '*.class' -Recurse | Select-Object -ExpandProperty FullName)
 & "$Jdk/bin/java$suffix" -cp "$Sdk/build-tools/$BuildTools/lib/d8.jar" com.android.tools.r8.D8 --lib $android --min-api 23 --output "$build/dex" @classes; Check
 & adb -s $DeviceSerial push "$build/dex/classes.dex" /data/local/tmp/quiethome-tests.dex; Check
 try{
+    & adb -s $DeviceSerial shell 'CLASSPATH=/data/local/tmp/quiethome-tests.dex app_process /system/bin local.quiethome.SettingsBackupTest'; Check
     & adb -s $DeviceSerial shell 'CLASSPATH=/data/local/tmp/quiethome-tests.dex app_process /system/bin local.quiethome.WidgetDataTest'; Check
 }finally{
     & adb -s $DeviceSerial shell rm /data/local/tmp/quiethome-tests.dex

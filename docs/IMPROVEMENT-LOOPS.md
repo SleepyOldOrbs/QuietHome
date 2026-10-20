@@ -59,3 +59,15 @@ Research: Android [broadcast lifecycle guidance](https://developer.android.com/d
 Listen for protected package changes only while the activity is started, debounce refreshes and recheck on resume. Defer rebuilding while a dialog has focus, retain menu snapshots, and preserve focus outside the dock. Unavailable favourites keep their saved positions; an empty visible dock explains how to choose apps and focuses All apps. No new package-query permission is added.
 
 Validation: host suite and APK build passed. On the isolated TV emulator, disabled the YouTube fixture, verified the empty-dock hint, restored the original default enable state and verified the tile returned. The QuietHome process stayed the same throughout. Inspected both screenshots, including preserved All apps focus. This test did not touch the household TV.
+
+## 8. Portable, strictly validated settings restore
+
+Research: Android's [JSONObject](https://developer.android.com/reference/org/json/JSONObject) getters can coerce types; [AtomicFile](https://developer.android.com/reference/android/util/AtomicFile) provides the existing recovery-file write pattern. Validate the full data structure before any restore side effects.
+
+Added shared, side-effect-free backup validation for required and optional fields. Empty docks and unavailable favourites now restore; empty saved docks also survive process recreation. Older schema-1 backups retain documented defaults. Invalid booleans/numbers/sections are rejected instead of silently coerced. A pending image decode cannot overwrite a newer restored gallery, and display preferences refresh immediately. Recovery failure messages distinguish a failure before changes from an unexpected failure after the recovery snapshot.
+
+Validation: all host tests, Android backup/parser/security/clock tests, live provider checks and the APK build passed. On the TV emulator, restored an empty dock with the new settings and exported it again; checked all new values. A malformed backup changed neither settings nor the pre-restore snapshot count. Restored an older backup and checked its defaults, then recovered and compared the original baseline exactly. Inspected successful/failed-restore screenshots. Synthetic images were moved out of the public checkout before the final empty-asset build.
+
+## Publication and limits
+
+Each numbered loop was committed and pushed separately after its local checks. GitHub CI runs the offline suite and APK build. The AI guide is an additional documentation commit, not one of the eight loops. The final source is 1.5-preview.8; this is not a stable hardware-validation claim. No preview was installed on the household TV, and no personal wallpapers, keys or device backups were published.

@@ -40,6 +40,7 @@ public final class HomeActivity extends Activity {
     private String[] wallpapers;
     private WallpaperDeck wallpaperDeck;
     private boolean active, loading, catalogDirty;
+    private long imageGeneration;
     private final Runnable refreshCatalog=()->{
         if(!active||!catalogDirty||!hasWindowFocus())return;
         View previous=getCurrentFocus();
@@ -103,7 +104,7 @@ public final class HomeActivity extends Activity {
         rotation.setInterval(RotationTimer.supported(interval)?interval:60000,SystemClock.elapsedRealtime());
         scanApps();
         String stored = getPreferences(0).getString("favourites", DEFAULTS);
-        favourites.addAll(Arrays.asList(stored.split(",")));
+        if(!stored.isEmpty())favourites.addAll(Arrays.asList(stored.split(",")));
         compact = getPreferences(0).getBoolean("compact", false);
         fitWallpaper=getPreferences(0).getBoolean("wallpaper_fit",false);
         focusedPackage = getPreferences(0).getString("last_dock_package", null);
@@ -423,14 +424,14 @@ public final class HomeActivity extends Activity {
         }catch(IOException e){toast("Backup storage is unavailable.");}
     }
     private void restoreBackup(File file){
+        boolean changesStarted=false;
         try{
             if(file.length()>65536||file.length()==0)throw new IOException("Invalid backup size");
             ByteArrayOutputStream bytes=new ByteArrayOutputStream();
             try(InputStream in=new FileInputStream(file)){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){bytes.write(b,0,n);if(bytes.size()>65536)throw new IOException("Too large");}}
             JSONObject state=new JSONObject(bytes.toString("UTF-8"));
-            if(state.getInt("schema")!=1)throw new JSONException("Unknown schema");
+            SettingsBackup.validate(state);
             JSONArray list=state.getJSONArray("favourites");
-            if(list.length()==0||list.length()>100)throw new JSONException("Invalid dock");
             ArrayList<String> restored=new ArrayList<>();
             for(int i=0;i<list.length();i++){
                 String pkg=list.getString(i);
@@ -459,9 +460,8 @@ public final class HomeActivity extends Activity {
                 restoredDeck=new WallpaperDeck(wallpapers,jsonStrings(gallery.getJSONArray("order")),
                     gallery.getInt("position"),gallery.optString("image",null),new Random());
             }
-            int visible=0;for(String pkg:restored)if(find(pkg)!=null)visible++;
-            if(visible==0)throw new JSONException("No available apps");
             saveBackup("before-restore-"+System.currentTimeMillis()+".json",false);
+            changesStarted=true;
             favourites.clear();favourites.addAll(restored);compact=restoredCompact;focusedPackage=restoredFocus;
             if(restoredDeck!=null){
                 wallpaperDeck=restoredDeck;artworkDelay=restoredDelay;
@@ -469,14 +469,14 @@ public final class HomeActivity extends Activity {
                 fitWallpaper=restoredFit;getPreferences(0).edit().putBoolean("wallpaper_fit",fitWallpaper).apply();applyWallpaperScale();
                 getPreferences(0).edit().putLong("wallpaper_interval",restoredInterval).apply();
                 getPreferences(0).edit().putLong("artwork_delay",artworkDelay).apply();
-                persistGallery();loadScene();
+                imageGeneration++;loading=false;persistGallery();loadScene();
             }
             if(restoredWidgets!=null){
                 widgets.restore(restoredWidgets);
                 clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
             }
-            persist();rebuildDock();armArtwork();toast("Home settings restored.");
-        }catch(Exception e){toast("This backup could not be restored. Your settings are unchanged.");}
+            persist();rebuildDock();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
+        }catch(Exception e){toast(changesStarted?"Restore failed after saving a recovery backup. Use Restore backup to recover.":"This backup could not be restored. Your settings are unchanged.");}
     }
     private void nextScene() {
         if(wallpapers.length==0||loading)return;
@@ -487,6 +487,7 @@ public final class HomeActivity extends Activity {
         if(wallpapers.length==0||loading)return;
         loading=true;
         final String name=wallpaperDeck.current();
+        final long request=++imageGeneration;
         images.execute(()->{
             Bitmap decoded=null;
             try{
@@ -499,8 +500,8 @@ public final class HomeActivity extends Activity {
             }catch(IOException|RuntimeException e){android.util.Log.w("QuietHome","Wallpaper unavailable",e);}
             final Bitmap result=decoded;
             handler.post(()->{
+                if(isDestroyed()||request!=imageGeneration){if(result!=null)result.recycle();return;}
                 loading=false;
-                if(isDestroyed()){if(result!=null)result.recycle();return;}
                 if(result!=null){
                     background.setImageBitmap(result);
                     String caption="Your collection  \u00b7  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');

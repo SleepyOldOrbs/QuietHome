@@ -26,7 +26,7 @@ final class WidgetData {
         connection.setConnectTimeout(7000);connection.setReadTimeout(7000);
         connection.setInstanceFollowRedirects(false);
         connection.setUseCaches(false);
-        connection.setRequestProperty("User-Agent","QuietHome/1.4 (personal TV feed reader)");
+        connection.setRequestProperty("User-Agent","QuietHome/1.5-preview (personal TV feed reader)");
         final long deadline=System.nanoTime()+20000000000L;
         try{
             if(connection.getResponseCode()!=200)throw new IOException("Feed unavailable");

@@ -25,7 +25,9 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Early, source-first release, based on QuietHome 1.4. The installed launcher has been exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback.
+Current source: **1.5-preview.8**, developed through [eight documented improvement loops](docs/IMPROVEMENT-LOOPS.md). Host tests, Android parser/settings tests, live feeds and selected UI/remote-navigation flows have been checked on an Android TV API 31 emulator.
+
+The earlier 1.4 launcher was exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. The new preview has **not** been deployed to that household TV; emulator checks do not certify HDMI, playback, audio or a physical remote.
 
 The public build has portable tooling and an empty-wallpaper fallback. It is not a certified replacement for every Android TV or Google TV device. The manifest declares API 23 as its minimum; older Android versions and other manufacturers have not been validated. Some input shortcuts and the initial TV tile are Sony-specific.
 
@@ -100,7 +102,7 @@ Read **[Privacy and data flows](docs/PRIVACY.md)** for endpoints, caching and li
 ## Tests and development
 
 ```powershell
-# Offline shuffle/state tests on the host
+# Offline shuffle, request-generation, display and rotation tests on the host
 pwsh -File ./test.ps1
 
 # Optional: Android parser/settings tests plus live public feeds on an authorised device
@@ -109,7 +111,7 @@ pwsh -File ./test.ps1 -DeviceSerial YOUR_DEVICE
 
 Device tests require Android SDK configuration and ADB on PATH. They push a temporary test DEX, run it with `app_process`, and remove it afterwards. They do not install the launcher or alter its preferences.
 
-CI builds the APK and runs the offline tests. It does not prove TV remote usability, input playback, audio, visual layout or live-provider availability. Contributions should include the relevant device/API details and actual checks performed; see [CONTRIBUTING.md](CONTRIBUTING.md).
+CI builds the APK and runs the offline tests. [Validation instructions](docs/TESTING.md) describe the separate Android and UI checks. It does not prove TV remote usability, input playback, audio, visual layout or live-provider availability. Contributions should include the relevant device/API details and actual checks performed; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licence and credits
 
