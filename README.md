@@ -14,6 +14,7 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **An app dock you control.** Choose favourites, use compact or standard tiles, and hold OK to rearrange them. The dock refreshes when apps change; temporarily unavailable favourites keep their saved positions.
 - **Your own wallpaper collection.** Shuffle without repeats, avoid an immediate repeat between cycles, and remember the current image after restarting. Rotate every 1, 5 or 15 minutes, or pause for manual changes. Time away from Home does not consume the interval. Choose fill/crop or fit the whole image with borders.
 - **Artwork mode.** Hide the interface immediately with Art mode, or after 30 seconds, one minute or two minutes. Left/Right browse the pictures while the interface stays hidden. Up, Down, OK or Back bring the controls back without launching an app.
+- **Silent video backgrounds.** Play a local H.264 MP4 on Home and in Art mode, or only in Art mode. Playback stops when you open another app; still pictures remain the fallback. See [video setup and recovery](docs/VIDEO-BACKGROUNDS.md).
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.
 - **Clock and date.** Follow the TV's local time without a network request; choose system, 12-hour or 24-hour display.
 - **Eight themes.** Frosted Glass, Midnight and Gallery are joined by Woodland ivy, Meadow flowers, Sakura blossom, Autumn leaves and Halloween pumpkins/bats. Static vector borders stay around the edges and disappear in Art mode. Choose a preset in **Home options → Appearance → Theme**.
@@ -28,7 +29,7 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Current source: **1.8-preview.1**, adding five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
+Current source: **1.9-preview.1**, adding optional local video backgrounds, a verified copy helper and still-picture fallback. Version 1.8 added five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 

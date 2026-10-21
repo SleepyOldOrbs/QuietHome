@@ -20,6 +20,11 @@ public final class SettingsBackupTest {
     }
     public static void main(String[] args) throws Exception {
         SettingsBackup.validate(base()); // A blank dock is a valid portable backup.
+        for(int mode=0;mode<3;mode++)SettingsBackup.validate(base().put("video",new JSONObject().put("mode",mode).put("file","forest.mp4")));
+        SettingsBackup.validate(base().put("video",new JSONObject().put("mode",0).put("file","")));
+        reject(base().put("video",JSONObject.NULL));reject(base().put("video",new JSONObject()));
+        for(Object mode:new Object[]{-1,3,0.5,"1",true})reject(base().put("video",new JSONObject().put("mode",mode).put("file","forest.mp4")));
+        for(Object file:new Object[]{"../forest.mp4","https://example.com/a.mp4",7,JSONObject.NULL})reject(base().put("video",new JSONObject().put("mode",1).put("file",file)));
         SettingsBackup.validate(base().put("favourites",new JSONArray().put("example.unavailable")));
         SettingsBackup.validate(base().put("widgets",widgets()).put("gallery",gallery())); // 1.4 fields only.
         SettingsBackup.validate(base().put("widgets",widgets().put("fahrenheit",true).put("clockMode",2))

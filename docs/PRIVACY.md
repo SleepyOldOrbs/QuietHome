@@ -51,4 +51,8 @@ QuietHome cannot control telemetry or network traffic from Android, the TV manuf
 
 ## Colour and nature themes (1.8)
 
-Appearance settings are local and included in settings exports. Botanical/seasonal borders are original vector drawings recorded when size or style changes. They introduce no downloads, tracking, permissions, bitmap collection or animation timer. Art mode hides them. Colour and transparency previews are not saved until Save; leaving with Cancel or Back discards the preview. No video or animated background playback is included in this release.
+Appearance settings are local and included in settings exports. Botanical/seasonal borders are original vector drawings recorded when size or style changes. They introduce no downloads, tracking, permissions, bitmap collection or animation timer. Art mode hides them. Colour and transparency previews are not saved until Save; leaving with Cancel or Back discards the preview. Version 1.8 did not include video playback.
+
+## Local video (1.9)
+
+Video is read only from the app-specific local videos directory. Media validation runs on a worker; preparation is asynchronous. Playback is muted and released when Home is paused. No audio focus, wake lock, new permission, media URL, analytics or upload is introduced. Settings exports contain mode and filename only; keep a separate copy of the video files. Cached still-picture frost is bypassed while video is visible; panels use their existing translucent tint. See [video backgrounds](VIDEO-BACKGROUNDS.md).

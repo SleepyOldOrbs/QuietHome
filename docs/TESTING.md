@@ -84,3 +84,20 @@ No new permission, provider endpoint, animation loop or background media playbac
 Implementation references: Android's [custom-view optimisation guidance](https://developer.android.com/develop/ui/views/layout/custom-views/optimizing-view) and [SeekBar keyboard increments](https://developer.android.com/reference/android/widget/SeekBar#setKeyProgressIncrement(int)).
 
 Original-key APK rollback to the previous source and reapplication of 1.8 passed on the TV. Fresh exports verified dock, widget, gallery timing/framing, theme and new appearance fields; recovery files are kept privately.
+
+## 1.9 preview 1 local video backgrounds
+
+Adds one muted local H.264 decoder with Off, Home-and-Art and Art-only modes. A separate copy helper validates a clip and device free space, then verifies the transferred bytes. Video settings are optional schema-1 fields; files are backed up separately.
+
+Validation on the authorised Android 12 TV:
+
+- Host policy tests cover safe filenames, inactive/suppressed/art-only playback and media limits. Android backup tests accept old snapshots and reject wrong video-field types, out-of-range modes, paths and URLs before mutation. Existing live widget/feed tests pass.
+- Public and original-key private APKs build and verify. All 122 private wallpaper files remain byte-identical; the private APK increases by 4 KiB. Existing dock, compact tiles, widgets, appearance and gallery timing/framing are preserved in fresh exports.
+- A private 20-second, 1280 × 720, 24 fps H.264 demo made from an existing wallpaper was copied with SHA-256 verification. Repeating the copy reused the verified file. It is not included in the repository.
+- TV screenshots show different decoded frames behind translucent panels, clean Art mode, Left/Right returning to still pictures, and OK restoring controls. Home-and-Art and Art-only modes were exercised.
+- Android media diagnostics report looping enabled and both volume channels at zero. Opening TV Settings removes QuietHome's player; returning Home resumes it. Logs show decoder release/recreation.
+- Missing and deliberately damaged local files fall back to still pictures without a launcher crash. The damaged-file message was changed to plain-language format guidance. Returning to a valid clip succeeds.
+
+This validates the tested 720p clip, not every codec profile, bitrate or television. Video has continuous decoding/composition costs; this is not a new latency, energy or 1080p performance benchmark. Physical TV/HDMI picture, sound and the physical remote were not re-certified during this session. Existing manufacturer apps and system settings were not modified.
+
+Original-key rollback to 1.8 source and reapplication of 1.9 passed on the TV. Fresh exports verified dock, widgets, theme, appearance, gallery timing/framing and the reapplied video mode/filename. The private recovery kit verifies APK/settings/media hashes and retains existing app data.

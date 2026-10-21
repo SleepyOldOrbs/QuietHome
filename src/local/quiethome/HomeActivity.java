@@ -27,6 +27,10 @@ public final class HomeActivity extends Activity {
     private String currentImage;
     private HomeTheme theme;
     private NatureBorder natureBorder;
+    private VideoBackground videoBackground;
+    private int videoMode;
+    private String videoFile="",videoStatus="";
+    private boolean videoSuppressed,videoShowing;
     private boolean catalogBusy;
     private long catalogGeneration;
     private ImageView background;
@@ -106,9 +110,9 @@ public final class HomeActivity extends Activity {
                 clock.setText(display);
             }
             widgets.render();
-            if (wallpapers.length>1 && rotation.due(SystemClock.elapsedRealtime()) && !loading) nextScene();
+            if (!videoHoldsRotation() && wallpapers.length>1 && rotation.due(SystemClock.elapsedRealtime()) && !loading) nextScene();
             long clockDelay = 60000 - (System.currentTimeMillis() % 60000);
-            long sceneDelay = wallpapers.length<2?clockDelay:Math.max(1000,rotation.delay(SystemClock.elapsedRealtime()));
+            long sceneDelay = videoHoldsRotation()||wallpapers.length<2?clockDelay:Math.max(1000,rotation.delay(SystemClock.elapsedRealtime()));
             handler.postDelayed(this, Math.min(clockDelay, sceneDelay));
         }
     };
@@ -132,11 +136,13 @@ public final class HomeActivity extends Activity {
         long interval=getPreferences(0).getLong("wallpaper_interval",60000);
         rotation.setInterval(RotationTimer.supported(interval)?interval:60000,SystemClock.elapsedRealtime());
         theme=new HomeTheme(HomeTheme.read(getPreferences(0)));
+        videoMode=getPreferences(0).getInt("video_mode",0);
+        videoFile=getPreferences(0).getString("video_file","");
         imageLoader=new WallpaperLoader(getAssets(),handler,(name,frame,elapsed,cached)->{
             loading=false;if(frame==null){toast("That picture could not be loaded.");return;}
             currentFrame=frame;currentImage=name;background.setImageBitmap(frame.image);
             theme.wallpaper(frame.frost,fitWallpaper);
-            scene.setText(imageCaption(name));
+            if(!videoShowing)scene.setText(imageCaption(name));
             persistGallery();
             android.util.Log.i("QuietHome","Wallpaper: "+name);
             android.util.Log.i("QuietHomePerf","image_ms="+elapsed+" cached="+cached);
@@ -201,13 +207,20 @@ public final class HomeActivity extends Activity {
     }
     private App find(String pkg) { for(App a:apps) if(a.pkg.equals(pkg)) return a; return null; }
     private void build() {
+        if(videoBackground!=null)videoBackground.close();
         if(widgets!=null)widgets.destroy();
-        artworkVisible=false;
+        artworkVisible=false;videoSuppressed=false;
         FrameLayout root=new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16,26,32));
         background=new ImageView(this);applyWallpaperScale();
         if(currentFrame!=null)background.setImageBitmap(currentFrame.image);
         root.addView(background,new FrameLayout.LayoutParams(-1,-1));
+        videoBackground=new VideoBackground(this,videoDirectory(),(showing,status)->{
+            videoShowing=showing;videoStatus=status;theme.video(showing);
+            if(active&&videoBackground!=null&&videoBackground.hasFailed())rotation.resume(SystemClock.elapsedRealtime());
+            if(scene!=null)scene.setText(showing?"Video · "+videoFile.replaceFirst("\\.mp4$",""):status.isEmpty()?(currentImage==null?"Your collection":imageCaption(currentImage)):status);
+        });
+        root.addView(videoBackground.view,new FrameLayout.LayoutParams(-1,-1));
         View shade=new View(this);
         shadeView=shade;
         shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
@@ -267,7 +280,7 @@ public final class HomeActivity extends Activity {
         setContentView(root);
         rebuildDock();
         if(currentFrame!=null)theme.wallpaper(currentFrame.frost,fitWallpaper);
-        if(active)widgets.start();
+        if(active)widgets.start();syncVideo();
     }
     private View addTool(LinearLayout parent,String label,Runnable action) {
         TextView b=text(label,14,theme.panelText()); b.setGravity(Gravity.CENTER);
@@ -447,6 +460,7 @@ public final class HomeActivity extends Activity {
     private void toast(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
     private JSONObject stateJson() throws JSONException {
         JSONObject state=new JSONObject();
+        state.put("video",new JSONObject().put("mode",videoMode).put("file",videoFile));
         state.put("schema",1);state.put("favourites",new JSONArray(favourites));state.put("compact",compact);
         if(theme!=null){
             state.put("theme",theme.mode);ThemeStyle style=HomeTheme.read(getPreferences(0));
@@ -559,6 +573,9 @@ public final class HomeActivity extends Activity {
             int restoredTheme=state.optInt("theme",1);
             ThemeStyle style=ThemeStyle.defaults(restoredTheme);JSONObject appearance=state.optJSONObject("appearance");
             if(appearance!=null)style=new ThemeStyle(restoredTheme,appearance.getInt("accent"),appearance.getInt("tint"),appearance.getInt("transparency"),appearance.getInt("density"));
+            JSONObject video=state.optJSONObject("video");
+            videoMode=video==null?0:video.getInt("mode");videoFile=video==null?"":video.getString("file");
+            getPreferences(0).edit().putInt("video_mode",videoMode).putString("video_file",videoFile).apply();
             HomeTheme.save(getPreferences(0),style);theme=new HomeTheme(style);persist();build();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
         }catch(Exception e){toast(changesStarted?"Restore failed after saving a recovery backup. Use Restore backup to recover.":"This backup could not be restored. Your settings are unchanged.");}
     }
@@ -569,6 +586,7 @@ public final class HomeActivity extends Activity {
     private String imageCaption(String name){return "Your collection  \u00b7  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');}
     private void browseScene(int direction) {
         if(wallpapers.length==0)return;
+        if(videoWanted()){videoSuppressed=true;syncVideo();}
         wallpaperDeck.browse(direction);loadScene();
     }
     private void loadScene() {
@@ -594,14 +612,52 @@ public final class HomeActivity extends Activity {
     private void applyWallpaperScale(){background.setScaleType(fitWallpaper?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);
         if(theme!=null&&currentFrame!=null)theme.wallpaper(currentFrame.frost,fitWallpaper);}
     private void wallpaperOptions(){
-        new AlertDialog.Builder(this).setTitle("Wallpaper settings").setItems(new String[]{"Timing","Picture framing"},(d,i)->{
+        new AlertDialog.Builder(this).setTitle("Wallpaper settings").setItems(new String[]{"Timing","Picture framing","Video backgrounds"},(d,i)->{
             if(i==0)wallpaperTiming();
+            if(i==2)videoOptions();
             if(i==1)new AlertDialog.Builder(this).setTitle("Picture framing")
                 .setSingleChoiceItems(new String[]{"Fill screen (crop edges)","Fit whole picture (may show borders)"},fitWallpaper?1:0,(dialog,index)->{
                     fitWallpaper=index==1;getPreferences(0).edit().putBoolean("wallpaper_fit",fitWallpaper).apply();
                     applyWallpaperScale();dialog.dismiss();
                 }).setNegativeButton("Cancel",null).show();
         }).setNegativeButton("Close",null).show();
+    }
+    private File videoDirectory(){
+        File root=getExternalFilesDir(null);if(root==null)root=getFilesDir();
+        File dir=new File(root,"videos");if(!dir.exists())dir.mkdirs();return dir;
+    }
+    private boolean videoWanted(){return VideoPolicy.shouldPlay(videoMode,active,artworkVisible,videoSuppressed)&&!videoFile.isEmpty();}
+    private boolean videoHoldsRotation(){return videoWanted()&&(videoBackground==null||!videoBackground.hasFailed());}
+    private void syncVideo(){
+        if(videoBackground!=null)videoBackground.update(videoFile,videoWanted());
+        if(videoHoldsRotation())rotation.pause(SystemClock.elapsedRealtime());else if(active)rotation.resume(SystemClock.elapsedRealtime());
+    }
+    private void saveVideo(){
+        getPreferences(0).edit().putInt("video_mode",videoMode).putString("video_file",videoFile).apply();
+        videoSuppressed=false;syncVideo();handler.removeCallbacks(tick);if(active)handler.post(tick);
+    }
+    private void videoOptions(){
+        new AlertDialog.Builder(this).setTitle("Video backgrounds").setMessage("Silent local MP4 loops. Playback stops when you leave Home.\nCurrent: "+(videoFile.isEmpty()?"No video selected":videoFile)+"\n"+videoStatus)
+            .setPositiveButton("Playback mode",(d,i)->new AlertDialog.Builder(this).setTitle("Video playback")
+                .setSingleChoiceItems(VideoPolicy.MODES,videoMode,(dialog,index)->{videoMode=index;saveVideo();dialog.dismiss();if(index!=0&&videoFile.isEmpty())chooseVideo();})
+                .setNegativeButton("Cancel",null).show())
+            .setNeutralButton("Choose video",(d,i)->chooseVideo())
+            .setNegativeButton("Close",null).show();
+    }
+    private void chooseVideo(){
+        File directory=videoDirectory();
+        catalogWorker.execute(()->{
+            String[] names=directory.list((dir,name)->VideoPolicy.validName(name)&&new File(dir,name).isFile());
+            final String[] files=names==null?new String[0]:names;Arrays.sort(files);
+            handler.post(()->{
+                if(isDestroyed()||!active)return;
+                if(files.length==0){new AlertDialog.Builder(this).setTitle("Add a local video")
+                    .setMessage("Copy a silent H.264 MP4 with QuietHome's Copy-Video.ps1 helper, then return here. Use up to 1080p, 30 fps and 80 MiB per file. Your original video is kept.\n\nVideo files are stored separately from the app and survive updates.")
+                    .setPositiveButton("OK",null).show();return;}
+                new AlertDialog.Builder(this).setTitle("Choose a local video").setItems(files,(d,i)->{videoFile=files[i];saveVideo();if(videoMode==0)toast("Video selected. Choose a playback mode to enable it.");})
+                    .setNegativeButton("Cancel",null).show();
+            });
+        });
     }
     private void wallpaperTiming(){
         final long[] intervals={0,60000,300000,900000};
@@ -630,7 +686,8 @@ public final class HomeActivity extends Activity {
             handler.postDelayed(enterArtwork,artworkDelay);
     }
     private void setArtworkVisible(boolean visible){
-        artworkVisible=visible;
+        if(artworkVisible!=visible)videoSuppressed=false;
+        artworkVisible=visible;syncVideo();
         for(View view:new View[]{headerView,lowerView,shadeView,natureBorder,widgets==null?null:widgets.view}){
             if(view==null)continue;
             view.animate().cancel();
@@ -713,13 +770,14 @@ public final class HomeActivity extends Activity {
     }
     @Override protected void onPause(){
         rotation.pause(SystemClock.elapsedRealtime());
-        active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
+        active=false;syncVideo();handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         widgets.stop();handler.removeCallbacks(refreshCatalog);catalogGeneration++;
         imageLoader.cancel();loading=false;
         persistGallery();super.onPause();
     }
     @Override protected void onDestroy(){
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
+        if(videoBackground!=null)videoBackground.close();
         widgets.destroy();
         imageLoader.destroy();catalogWorker.shutdownNow();super.onDestroy();
     }

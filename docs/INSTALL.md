@@ -60,7 +60,7 @@ New optional fields cover temperature units, clock format, wallpaper timing and 
 
 Version 1.7 adds theme, widget layout and card positions. A backup without a theme uses Midnight; an older widget section without layout/positions uses standard cards with news on the left. Saved visibility choices survive clock-only mode. Unknown or incorrectly typed values are rejected before preferences are changed.
 
-Version 1.8 adds an optional `appearance` object with RGB accent/tint, transparency (0–100), and border density (0–2), plus five new theme IDs. These values are validated before a restore changes anything. Older backups load the saved theme with its default appearance. Older app versions cannot restore the new theme IDs: keep a pre-update settings export with your compatible, original-key rollback APK.
+Version 1.8 adds an optional `appearance` object with RGB accent/tint, transparency (0-100), and border density (0-2), plus five new theme IDs. These values are validated before a restore changes anything. Older backups load the saved theme with its default appearance. Older app versions cannot restore the new theme IDs: keep a pre-update settings export with your compatible, original-key rollback APK.
 
 On typical devices the files are under:
 
@@ -71,3 +71,7 @@ On typical devices the files are under:
 Copy them to your own private storage if needed. They contain app package names, wallpaper filenames/shuffle state and widget settings including the selected town and coordinates. They do not contain the wallpaper pixels, other apps' account data or a firmware image.
 
 Avoid committing these backups or device screenshots to a public issue. Keep your signing key so future builds can update the same app in place.
+
+## Optional video backgrounds
+
+See [local video setup](VIDEO-BACKGROUNDS.md) for the verified copy helper, input limits and recovery. Videos are separate from the APK and settings export. Back up the videos directory alongside your settings. Old backups restore video playback to Off.

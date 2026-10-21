@@ -15,7 +15,8 @@ final class HomeTheme {
     final int mode;
     ThemeStyle style;
     private Bitmap frost;
-    private boolean fit;
+    private boolean fit,video;
+    void video(boolean showing){if(video!=showing){video=showing;preview(style);}}
     private final ArrayList<WeakReference<Drawable>> surfaces=new ArrayList<>();
     HomeTheme(ThemeStyle style){this.style=style;mode=style.mode;}
     static ThemeStyle read(SharedPreferences prefs){
@@ -68,7 +69,7 @@ final class HomeTheme {
             int saved=canvas.save();canvas.clipPath(clip);
             paint.setStyle(Paint.Style.FILL);
             // Glass must not start with an opaque undercoat: retain the real background below.
-            if((mode==0||mode>=3)&&frost!=null){
+            if(!video&&(mode==0||mode>=3)&&frost!=null){
                 View root=owner.getRootView();owner.getLocationInWindow(location);root.getLocationInWindow(origin);
                 float w=root.getWidth(),h=root.getHeight();
                 float scale=fit?Math.min(w/frost.getWidth(),h/frost.getHeight()):Math.max(w/frost.getWidth(),h/frost.getHeight());
