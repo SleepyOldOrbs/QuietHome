@@ -52,7 +52,11 @@ final class NatureBorder extends View {
         c.scale(getWidth()/960f,getHeight()/540f);
         // Keep text, focus highlights and buttons unobscured, including after widget reflow.
         for(Rect r:protectedRects)if(!r.isEmpty()){RectF clear=logical(r);clear.inset(-3,-3);c.clipRect(clear,Region.Op.DIFFERENCE);}
-        for(Rect r:panels)if(!r.isEmpty()){RectF clear=logical(r);clear.inset(4,4);c.clipRect(clear,Region.Op.DIFFERENCE);}
+        for(int i=0;i<panels.length;i++)if(!panels[i].isEmpty()){
+            RectF clear=logical(panels[i]);clear.inset(i==0?8:10,i==0?8:10);
+            Path interior=new Path();interior.addRoundRect(clear,i==0?14:8,i==0?14:8,Path.Direction.CW);
+            c.clipPath(interior,Region.Op.DIFFERENCE);
+        }
         float topScale=mode==8?(density==2?.65f:.5f):(density==2?.45f:.34f);
         float bottomScale=density==2?.55f:.42f;
         for(int row=0;row<2;row++)for(int col=0;col<2;col++){
@@ -62,22 +66,28 @@ final class NatureBorder extends View {
         }
         if(artwork.sprig!=null&&!artwork.sprigBounds.isEmpty())for(int i=0;i<panels.length;i++)if(!panels[i].isEmpty()){
             RectF p=logical(panels[i]);
-            float width=density==2?120:90;
-            float height=Math.min(density==2?34:28,width*artwork.sprigBounds.height()/artwork.sprigBounds.width());
-            width=height*artwork.sprigBounds.width()/artwork.sprigBounds.height();
-            // Hang above each rim; only the fine lower tips overlap its four-pixel border.
-            float centre=i==0?p.centerX():p.right-width*.65f-14;
-            sprig(c,artwork,centre-width/2,p.top-height+4,width,height);
-            if(i==0){
-                float h=10,w=h*artwork.sprigBounds.width()/artwork.sprigBounds.height();
-                sprig(c,artwork,p.left+p.width()*.25f-w/2,p.bottom-2,w,h);
-                sprig(c,artwork,p.left+p.width()*.75f-w/2,p.bottom-2,w,h);
+            // Continuous corner garlands: dock at both ends, news at its right edge,
+            // weather at both corners. Size follows each panel, never the scrolled tiles.
+            float width=i==0?(density==2?280:245):i==1?(density==2?220:190):p.width()*(density==2?.66f:.58f);
+            width=Math.min(width,p.width()*.72f);
+            float height=width*artwork.sprigBounds.height()/artwork.sprigBounds.width();
+            float rise=density==2?.18f:.14f;
+            float top=p.top-height*rise;
+            // Leave the controls below the dock clear without squashing the artwork.
+            if(i==0&&!protectedRects[2].isEmpty()){
+                float limit=logical(protectedRects[2]).top-5;
+                if(top+height>limit){height=(limit-p.top)/(1-rise);width=height*artwork.sprigBounds.width()/artwork.sprigBounds.height();top=p.top-height*rise;}
             }
+            if(i!=1)garland(c,artwork,p.left-width*.13f,top,width,height,false);
+            garland(c,artwork,p.right-width*.87f,top,width,height,true);
         }
         picture.endRecording();
     }
-    private void sprig(Canvas c,ThemeArtwork.Artwork artwork,float left,float top,float width,float height){
-        c.drawBitmap(artwork.sprig,artwork.sprigBounds,new RectF(left,top,left+width,top+height),paint);
+    private void garland(Canvas c,ThemeArtwork.Artwork artwork,float left,float top,float width,float height,boolean mirror){
+        c.save();c.translate(left,top);
+        if(mirror){c.translate(width,0);c.scale(-1,1);}
+        c.drawBitmap(artwork.sprig,artwork.sprigBounds,new RectF(0,0,width,height),paint);
+        c.restore();
     }
     private void cutout(Canvas c,Bitmap image,int row,int col,float left,float top,float factor){
         int w=image.getWidth(),h=image.getHeight();

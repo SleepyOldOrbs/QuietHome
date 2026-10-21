@@ -79,3 +79,5 @@ See [local video setup](VIDEO-BACKGROUNDS.md) for the verified copy helper, inpu
 Version 1.10 adds theme ID 8 (Summertime) and video mode 3 (Home screen only). IDs 0–7 for themes and 0–2 for video modes keep their earlier meanings. Older app versions cannot restore the new values: use a pre-update snapshot with the matching rollback APK. The generated decorative asset is bundled in the APK; local video files are still backed up separately.
 
 Version 1.11 replaces the older vector botanical drawings with generated alpha artwork and adds dock/widget sprigs. Theme IDs and backup schema are unchanged. Off/Light/Lush controls all decoration. Preserve the prior APK and settings if you want to restore the earlier artwork implementation; switching themes or choosing Off requires no reinstall.
+
+Version 1.11 preview 2 keeps those IDs and settings intact and replaces the panel sprigs with broader corner garlands. The existing Off/Light/Lush control applies. Use a matching original-key prior implementation and its settings snapshot to restore the smaller artwork; do not uninstall or clear data.

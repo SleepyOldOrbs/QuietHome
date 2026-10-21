@@ -135,3 +135,17 @@ This is visual and behavioural validation, not a new latency/energy benchmark or
 Home-only video was checked again with these decorations: Art mode hides the entire UI and stops the QuietHome player, Right changes the still image, and OK restores Home and muted hardware playback. The short resumed-playback diagnostic showed zero dropped frames over 256 frames; it is not a general performance benchmark.
 
 Original-key rollback to the 1.10 implementation and reapplication of 1.11 both passed in place. Fresh settings exports verified dock, widgets, gallery timing/framing, theme, appearance and video mode/filename. The recovery helper retries transient UI-read failures without guessing tap coordinates, verifies file hashes and device identity, retains backups and refuses later versions. No uninstall or data clear was used.
+
+## 1.11 preview 2 larger panel garlands
+
+User feedback and a placement sketch showed that the small sprigs did not fill enough of the dock/widget edges. Six new ChatGPT-generated alpha cutouts form continuous upper-corner drapes: both dock ends, the news card's right edge, and both weather corners. Their size follows actual panel bounds; the dock remains stationary. Rounded interior masks protect labels and focus highlights. All six screen-corner images and all private wallpaper files are unchanged.
+
+Validation on 21 October 2026:
+
+- Host tests and public/private builds passed. Android parser/settings tests and live provider checks passed on the existing Android TV API 31 emulator.
+- All six generated PNGs have real alpha transparency and retain their original bytes. The six replacements total 11,026,666 bytes, an increase of 4,012,029 bytes (about 3.8 MiB) over preview 1.
+- Screenshots on the 1920 x 1080 emulator were inspected for all six themes, Light/Lush/Off, compact/standard/swapped layouts, clock-only layout and Art mode. Text and focus remain clear; hidden cards leave no orphan artwork.
+- The worker samples frame and garland at half size. Android reported 3,144,544 allocated bitmap bytes (about 3 MiB) for each tested theme pair. This excludes temporary decoding and other application resources; no new latency or energy benchmark is claimed.
+- An initial build was installed in place on the authorised Sony TV and its Summertime screenshot inspected. TV control stopped when another app was opened. The final rounded-mask/Lush refinements and this version's physical-TV rollback/reapply remain pending a free TV; emulator success is not represented as TV validation.
+
+There are no settings-schema, permission, provider or system-package changes. Prior APK/settings and a version-specific original-key recovery package are preserved privately. Exact prompts are in [GARLAND-PROMPTS.md](../assets/themes/GARLAND-PROMPTS.md).

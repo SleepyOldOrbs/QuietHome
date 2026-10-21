@@ -53,7 +53,7 @@ final class ThemeArtwork {
                 int requested;
                 synchronized(ThemeArtwork.class){requested=wanted;}
                 String name=FILES[requested-3];
-                Artwork result=new Artwork(decode(assets,name,2),decode(assets,name+"-sprig",4));
+                Artwork result=new Artwork(decode(assets,name,2),decode(assets,name+"-sprig",2));
                 ArrayList<WeakReference<NatureBorder>> targets;
                 synchronized(ThemeArtwork.class){
                     if(requested!=wanted)continue;

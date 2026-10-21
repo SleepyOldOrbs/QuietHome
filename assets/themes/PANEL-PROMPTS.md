@@ -1,6 +1,6 @@
-# Hanging panel artwork
+# Original hanging panel artwork (1.11 preview 1)
 
-Generated independently with the built-in ChatGPT image tool and `transparent_background: true`. No wallpaper inputs. These original PNGs have no clipped outer edges. Runtime alpha bounds place the cutouts on panel rims without changing the files.
+These small sprigs were superseded by [corner garlands](GARLAND-PROMPTS.md) in preview 2; Git history preserves the earlier files. Generated independently with the built-in ChatGPT image tool and `transparent_background: true`. No wallpaper inputs. These original PNGs have no clipped outer edges. Runtime alpha bounds place the cutouts on panel rims without changing the files.
 
 ## woodland-sprig.png
 

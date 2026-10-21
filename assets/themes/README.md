@@ -1,8 +1,8 @@
 # Theme artwork
 
-Version 1.11 extends the generated artwork to Woodland, Meadow, Sakura, Autumn and Halloween, and adds a separate hanging sprig for each of the six nature themes. See [seasonal border prompts](SEASONAL-PROMPTS.md) and [panel sprig prompts](PANEL-PROMPTS.md). All assets were created with the built-in ChatGPT image tool with true alpha transparency; the original PNG bytes are retained.
+Version 1.11 extends the generated artwork to Woodland, Meadow, Sakura, Autumn and Halloween, and adds a separate hanging sprig for each of the six nature themes. Preview 2 replaces the small sprigs with broad corner garlands: see [current garland prompts](GARLAND-PROMPTS.md). The [seasonal border prompts](SEASONAL-PROMPTS.md) and [original panel sprig prompts](PANEL-PROMPTS.md) record the earlier assets. All assets were created with the built-in ChatGPT image tool with true alpha transparency; the original PNG bytes are retained.
 
-One worker decodes the requested theme only: a half-size frame and quarter-size sprig. The cache holds one theme, not the entire set. Panel decorations follow actual dock/widget bounds and are clipped away from text and controls. They do not scroll with dock apps or add focus targets. Off hides all decoration; Art mode hides it with the UI.
+One worker decodes the requested theme only: a half-size frame and half-size garland. The cache holds one theme, not the entire set. Substantial panel corner garlands follow actual dock/widget bounds and are clipped away from text and controls. They do not scroll with dock apps or add focus targets. Off hides all decoration; Art mode hides it with the UI.
 
 ## Original Summertime artwork
 

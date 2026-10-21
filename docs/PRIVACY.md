@@ -66,3 +66,7 @@ Summertime bundles one generated PNG with real alpha transparency. Generation ha
 All six botanical/seasonal themes use bundled generated PNGs, plus matching transparent sprigs for the dock and widget rims. Generation occurs only during development. A single worker decodes the requested theme; the cache retains one pair of sampled bitmaps, approximately 1.9 MiB on the tested TV. Old drawing resources and in-flight decoding can temporarily add memory until released by Android. Alpha-bound analysis also runs on the worker. There are no additional providers, permissions, timers or saved-setting fields.
 
 Decorations use actual visible panel bounds, follow widget layout/visibility changes, and stay fixed while app tiles scroll. The overlay cannot receive focus or touch. Text and controls are clipped out of its drawing area. Off/Light/Lush and Art mode apply to both the screen borders and panel artwork.
+
+## Larger panel garlands (1.11 preview 2)
+
+Six replacement alpha images create continuous top-and-side drapes at the existing panel bounds. Screen-corner images are unchanged. Both frame and garland are sampled at half size by the existing worker, with only one theme pair retained. This increases the theme bitmap allocation to approximately 3 MiB, excluding decoding temporaries and other caches. Panel interiors and controls remain protected, and Art mode hides the whole overlay. No permission, network provider, timer or settings-schema change is introduced.
