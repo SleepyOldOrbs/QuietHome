@@ -1,6 +1,8 @@
-# Performance notes: 1.7 preview
+# Performance notes: 1.7 preview 1
 
 Measured on one authorised Sony BRAVIA running Android 12, with a 1920 × 1080 launcher surface, 122 bundled WebP wallpapers and ten dock favourites, on 21 October 2026. This compares the installed 1.6 preview with 1.7 using Frosted Glass and compact widgets. It is a small on-device sample, not a guarantee for other TVs.
+
+These measurements describe preview 1. Preview 2 changes glass compositing and dock clipping/edge scrolling; the full startup and memory comparison has not been repeated for that visual fix.
 
 ## Home and picture changes
 

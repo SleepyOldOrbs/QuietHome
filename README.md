@@ -27,7 +27,7 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Current source: **1.7-preview.1**, adding themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
+Current source: **1.7-preview.2**, refining glass transparency and keeping scrolling tiles inside the dock. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 

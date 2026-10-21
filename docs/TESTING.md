@@ -57,3 +57,11 @@ A selected app was temporarily disabled to exercise catalogue updates, then re-e
 The private update used the original signing certificate and retained all 122 wallpaper files byte for byte. An in-place rollback to 1.6 source and reapplication of 1.7 passed, with settings exported and compared after each operation. A recovery-script export timing issue was caught and corrected: verification now requires a newly created backup instead of accepting an older file.
 
 See [performance](PERFORMANCE.md) for the startup, image-change, rendering and memory measurements, including regressions and methodological limits. This release adds no permissions, network providers or system-package changes. Fresh physical playback/audio/remote confirmation remains separate from these ADB checks.
+
+## 1.7 preview 2 visual corrections
+
+User feedback identified overly opaque glass and tiles drawing outside the dock. Glass now combines a translucent cached frost layer with a lighter tint, without an opaque undercoat when wallpaper is available. Focus retains a stronger translucent tint for readable dark labels. The dock has a rounded clipped frame and an inset scrolling viewport; focus scrolling reserves room for the enlarged highlight at both ends.
+
+Host tests and public/private builds passed. TV screenshots were inspected at the left end, middle and right end of the dock, with the last tile selected again after a launcher restart. Both end highlights remain inside the frame. Widget focus and wallpaper visibility were checked on the actual TV. No new network, permission or settings-schema change is included. The previous preview's full performance table is labelled separately; it is not a fresh benchmark of this visual update.
+
+An original-key update, rollback to preview-1 source and reapplication of preview 2 passed on the TV, with dock/widget/theme preferences exported and verified. All 122 bundled wallpapers remain byte-identical. Recovery packages, private settings and screenshots are excluded from the public repository.

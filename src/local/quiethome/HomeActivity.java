@@ -32,6 +32,7 @@ public final class HomeActivity extends Activity {
     private TextView clock, scene;
     private HomeWidgets widgets;
     private LinearLayout dock;
+    private HorizontalScrollView dockScroll;
     private View allAppsButton;
     private View headerView, lowerView, shadeView;
     private String focusedPackage;
@@ -228,13 +229,24 @@ public final class HomeActivity extends Activity {
         lowerView=lower;
         scene=text(currentImage!=null?imageCaption(currentImage):wallpapers.length==0?"Quiet Home":"A moment outside",15,0xFFE2ECE6);
         scene.setPadding(dp(4),0,0,dp(18)); lower.addView(scene);
+        FrameLayout dockFrame=new FrameLayout(this);
+        dockFrame.setPadding(dp(10),dp(10),dp(10),dp(10));
+        dockFrame.setBackground(theme.surface(dockFrame,false,dp(22)));
+        dockFrame.setOutlineProvider(new ViewOutlineProvider(){
+            @Override public void getOutline(View view,Outline outline){
+                outline.setRoundRect(0,0,view.getWidth(),view.getHeight(),dp(22));
+            }
+        });
+        dockFrame.setClipToOutline(true);
         HorizontalScrollView scroll=new HorizontalScrollView(this);
-        scroll.setHorizontalScrollBarEnabled(false); scroll.setClipChildren(false);
-        scroll.setClipToPadding(false); scroll.setPadding(dp(10),dp(10),dp(10),dp(10));
-        scroll.setBackground(theme.surface(scroll,false,dp(22)));
+        dockScroll=scroll;
+        scroll.setHorizontalScrollBarEnabled(false);scroll.setClipChildren(true);scroll.setClipToPadding(true);
         dock=new LinearLayout(this); dock.setGravity(Gravity.CENTER_VERTICAL);
+        dock.setPadding(dp(4),0,dp(4),0);
         dock.setClipChildren(false); dock.setClipToPadding(false);
-        scroll.addView(dock); lower.addView(scroll,new LinearLayout.LayoutParams(-1,dp(132)));
+        scroll.addView(dock,new FrameLayout.LayoutParams(-2,-1));
+        dockFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+        lower.addView(dockFrame,new LinearLayout.LayoutParams(-1,dp(132)));
         LinearLayout tools=new LinearLayout(this);
         tools.setPadding(0,dp(14),0,0); tools.setGravity(Gravity.CENTER_VERTICAL);
         allAppsButton=addTool(tools,"All apps",()->showApps(false));
@@ -292,6 +304,14 @@ public final class HomeActivity extends Activity {
                     focusedPackage=pkg; allAppsButton.setNextFocusUpId(card.getId());
                     widgets.linkDock(card);
                     getPreferences(0).edit().putString("last_dock_package",pkg).apply();
+                    // Android's default focus scroll omits the scaled highlight and can clip an end tile.
+                    dockScroll.post(()->{
+                        if(!card.hasFocus())return;
+                        int left=card.getLeft()-dp(8),right=card.getRight()+dp(8);
+                        int x=dockScroll.getScrollX(),width=dockScroll.getWidth();
+                        if(left<x)dockScroll.smoothScrollTo(Math.max(0,left),0);
+                        else if(right>x+width)dockScroll.smoothScrollTo(right-width,0);
+                    });
                 }
                 card.setBackground(theme.surface(card,f,dp(15))); label.setTextColor(f?0xFF14201F:Color.WHITE);
                 card.animate().scaleX(f?1.035f:1).scaleY(f?1.035f:1).setDuration(120).start();

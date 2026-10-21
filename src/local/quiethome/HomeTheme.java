@@ -14,8 +14,8 @@ final class HomeTheme {
     private boolean fit;
     private final ArrayList<WeakReference<Drawable>> surfaces=new ArrayList<>();
     HomeTheme(int mode){this.mode=mode>=0&&mode<NAMES.length?mode:1;}
-    int focus(){return mode==2?0xFFFFE6BC:mode==1?0xFFBDCCFF:0xFFD7F5ED;}
-    int panel(){return mode==2?0xE02C241F:mode==1?0xF0101728:0xB0182933;}
+    int focus(){return mode==2?0xFFFFE6BC:mode==1?0xFFBDCCFF:0xD8D7F5ED;}
+    int panel(){return mode==2?0xE02C241F:mode==1?0xF0101728:0x58182933;}
     void wallpaper(Bitmap bitmap,boolean fit){
         this.frost=bitmap;this.fit=fit;
         Iterator<WeakReference<Drawable>> it=surfaces.iterator();
@@ -37,14 +37,16 @@ final class HomeTheme {
         @Override public void draw(Canvas canvas){
             area.set(getBounds());clip.reset();clip.addRoundRect(area,radius,radius,Path.Direction.CW);
             int saved=canvas.save();canvas.clipPath(clip);
-            paint.setStyle(Paint.Style.FILL);paint.setColor(0xFF101820);canvas.drawRect(area,paint);
+            paint.setStyle(Paint.Style.FILL);
+            // Glass must not start with an opaque undercoat: retain the real background below.
+            if(mode!=0||frost==null){paint.setColor(0xFF101820);canvas.drawRect(area,paint);}
             if(mode==0&&frost!=null){
                 View root=owner.getRootView();owner.getLocationInWindow(location);root.getLocationInWindow(origin);
                 float w=root.getWidth(),h=root.getHeight();
                 float scale=fit?Math.min(w/frost.getWidth(),h/frost.getHeight()):Math.max(w/frost.getWidth(),h/frost.getHeight());
                 float iw=frost.getWidth()*scale,ih=frost.getHeight()*scale;
                 float left=(w-iw)/2-location[0]+origin[0],top=(h-ih)/2-location[1]+origin[1];
-                imageArea.set(left,top,left+iw,top+ih);paint.setColor(Color.WHITE);canvas.drawBitmap(frost,null,imageArea,paint);
+                imageArea.set(left,top,left+iw,top+ih);paint.setColor(0xA0FFFFFF);canvas.drawBitmap(frost,null,imageArea,paint);
             }
             paint.setColor(focused?focus():panel());canvas.drawRect(area,paint);
             if(mode==0&&!focused&&sheen!=null){paint.setShader(sheen);canvas.drawRect(area,paint);paint.setShader(null);}

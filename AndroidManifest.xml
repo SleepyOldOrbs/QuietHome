@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.quiethome" android:versionCode="15" android:versionName="1.7-preview.1">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.quiethome" android:versionCode="16" android:versionName="1.7-preview.2">
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="35"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <queries>
