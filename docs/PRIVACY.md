@@ -60,3 +60,9 @@ Video is read only from the app-specific local videos directory. Media validatio
 ## Summertime artwork (1.10)
 
 Summertime bundles one generated PNG with real alpha transparency. Generation happened during development; the TV does not call an image-generation service or download decorative assets. A worker decodes one sampled bitmap (approximately 1.5 MiB on the tested TV), cached for the process lifetime; this is additional to the wallpaper cache. Static corner drawings have no animation timer. Theme/border-density preferences use the existing local settings and backups. Home-screen-only video mode releases its player in Art mode.
+
+## Seasonal artwork and panel decorations (1.11)
+
+All six botanical/seasonal themes use bundled generated PNGs, plus matching transparent sprigs for the dock and widget rims. Generation occurs only during development. A single worker decodes the requested theme; the cache retains one pair of sampled bitmaps, approximately 1.9 MiB on the tested TV. Old drawing resources and in-flight decoding can temporarily add memory until released by Android. Alpha-bound analysis also runs on the worker. There are no additional providers, permissions, timers or saved-setting fields.
+
+Decorations use actual visible panel bounds, follow widget layout/visibility changes, and stay fixed while app tiles scroll. The overlay cannot receive focus or touch. Text and controls are clipped out of its drawing area. Off/Light/Lush and Art mode apply to both the screen borders and panel artwork.

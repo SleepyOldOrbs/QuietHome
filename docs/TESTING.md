@@ -117,3 +117,21 @@ Validation on the authorised Android 12 TV:
 These are automated and ADB-driven checks, not a new latency benchmark or physical TV/HDMI/audio certification. Private APKs, screenshots, settings and device identifiers remain outside this repository. Bitmap sampling follows Android's [large-bitmap guidance](https://developer.android.com/topic/performance/graphics/load-bitmap).
 
 Original-key rollback to 1.9 source and reapplication of 1.10 passed on the TV. Fresh exports verified dock, widgets, gallery timing/framing, theme, appearance and video mode/filename in both directions. The private recovery script verifies file hashes, preserves app data and refuses later app versions.
+
+## 1.11 preview 1 realistic seasonal artwork
+
+Woodland, Meadow, Sakura, Autumn and Halloween now use generated alpha PNGs, matching the approach approved for Summertime. Each of the six themes also has a dedicated hanging sprig for the stationary dock and news/weather rims. Plain themes are unchanged. Nature themes reserve more space above the panels; the dock frame itself keeps its position.
+
+Validation on the authorised Android 12 TV:
+
+- Host and Android settings/parser tests, live provider checks and public/private builds passed. There is no new settings field or permission; existing theme IDs and Home-only video mode retain their meanings.
+- All twelve PNGs were inspected and checked for actual transparency. Generated files retain their original bytes. The added artwork is 9,372,265 bytes (about 8.9 MiB); the approved Summertime frame and all 122 private wallpapers remain unchanged.
+- One worker loads the requested frame at half size and sprig at quarter size, and computes alpha bounds off the UI thread. The cache retains one theme pair. Android reported 1,963,292 bitmap bytes (about 1.9 MiB) per tested theme; this excludes transient decoding, old drawing resources and other app caches.
+- TV screenshots were inspected for all six themes. Decorations have natural transparent edges, remain clear of labels, and attach to panel rims. The overlay has no touch or focus targets and no animation timer.
+- Off hides the screen and panel artwork. Light/Lush change size. Scrolling through the final dock favourite leaves decoration anchored to the dock frame. Standard, compact, swapped and clock-only widget layouts were exercised; hidden cards leave no orphan sprigs. The secondary wallpaper/video filename is hidden only when its text bounds intersect a visible widget, preserving the dock position.
+
+This is visual and behavioural validation, not a new latency/energy benchmark or physical TV/HDMI/audio certification. Artwork generation happened during development using the built-in ChatGPT image tool; the TV makes no generation requests. Prompts and provenance are in [assets/themes](../assets/themes/README.md). Private device screenshots, settings, wallpapers and signing material are excluded from this repository.
+
+Home-only video was checked again with these decorations: Art mode hides the entire UI and stops the QuietHome player, Right changes the still image, and OK restores Home and muted hardware playback. The short resumed-playback diagnostic showed zero dropped frames over 256 frames; it is not a general performance benchmark.
+
+Original-key rollback to the 1.10 implementation and reapplication of 1.11 both passed in place. Fresh settings exports verified dock, widgets, gallery timing/framing, theme, appearance and video mode/filename. The recovery helper retries transient UI-read failures without guessing tap coordinates, verifies file hashes and device identity, retains backups and refuses later versions. No uninstall or data clear was used.

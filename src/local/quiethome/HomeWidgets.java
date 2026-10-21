@@ -119,6 +119,8 @@ final class HomeWidgets {
             }).setNegativeButton("Cancel",null).show();
     }
     boolean clockEnabled(){return layout==2||enabled("clock");}
+    View newsDecorationAnchor(){return newsCard;}
+    View weatherDecorationAnchor(){return weatherCard;}
     void linkDock(View dock){
         if(dock==null)return;
         newsCard.setNextFocusDownId(dock.getId());weatherCard.setNextFocusDownId(dock.getId());

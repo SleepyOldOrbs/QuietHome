@@ -227,7 +227,6 @@ public final class HomeActivity extends Activity {
             new int[]{0x50000000,0x08000000,0xE80A1018}));
         root.addView(shade,new FrameLayout.LayoutParams(-1,-1));
         natureBorder=new NatureBorder(this,theme.style);
-        root.addView(natureBorder,new FrameLayout.LayoutParams(-1,-1));
 
         LinearLayout header=new LinearLayout(this); header.setGravity(Gravity.CENTER_VERTICAL);
         headerView=header;
@@ -236,15 +235,16 @@ public final class HomeActivity extends Activity {
         clock=text("",22,Color.WHITE); clock.setGravity(Gravity.RIGHT); header.addView(clock);
         FrameLayout.LayoutParams hp=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);
         hp.setMargins(dp(48),dp(30),dp(48),0); root.addView(header,hp);
+        boolean decorated=theme.mode>=3&&theme.style.density>0;
         widgets=new HomeWidgets(this,handler,theme);
         FrameLayout.LayoutParams wp=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);
-        wp.setMargins(dp(48),dp(96),dp(48),0);root.addView(widgets.view,wp);
+        wp.setMargins(dp(48),dp(decorated?116:96),dp(48),0);root.addView(widgets.view,wp);
         clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
 
         LinearLayout lower=new LinearLayout(this); lower.setOrientation(LinearLayout.VERTICAL);
         lowerView=lower;
         scene=text(currentImage!=null?imageCaption(currentImage):wallpapers.length==0?"Quiet Home":"A moment outside",15,0xFFE2ECE6);
-        scene.setPadding(dp(4),0,0,dp(18)); lower.addView(scene);
+        scene.setPadding(dp(4),0,0,dp(decorated?34:18)); lower.addView(scene);
         FrameLayout dockFrame=new FrameLayout(this);
         dockFrame.setPadding(dp(10),dp(10),dp(10),dp(10));
         dockFrame.setBackground(theme.surface(dockFrame,false,dp(22)));
@@ -277,10 +277,30 @@ public final class HomeActivity extends Activity {
         lower.addView(tools);
         FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);
         lp.setMargins(dp(48),0,dp(48),dp(34)); root.addView(lower,lp);
+        natureBorder.bind(root,dockFrame,widgets.newsDecorationAnchor(),widgets.weatherDecorationAnchor(),header,scene,tools);
+        root.addView(natureBorder,new FrameLayout.LayoutParams(-1,-1));
         setContentView(root);
+        final TextView caption=scene;final HomeWidgets panelWidgets=widgets;
+        root.getViewTreeObserver().addOnGlobalLayoutListener(()->updateCaptionVisibility(root,caption,panelWidgets));
         rebuildDock();
         if(currentFrame!=null)theme.wallpaper(currentFrame.frost,fitWallpaper);
         if(active)widgets.start();syncVideo();
+    }
+    private void updateCaptionVisibility(FrameLayout root,TextView caption,HomeWidgets panels){
+        if(artworkVisible||caption.getLayout()==null)return;
+        android.text.Layout textLayout=caption.getLayout();
+        float right=0;
+        for(int i=0;i<textLayout.getLineCount();i++)right=Math.max(right,textLayout.getLineRight(i));
+        Rect textBounds=new Rect(0,0,Math.min(caption.getWidth(),(int)Math.ceil(right)+caption.getPaddingLeft()),caption.getHeight()-caption.getPaddingBottom());
+        root.offsetDescendantRectToMyCoords(caption,textBounds);
+        boolean overlaps=false;
+        for(View card:new View[]{panels.newsDecorationAnchor(),panels.weatherDecorationAnchor()})if(card.isShown()){
+            Rect bounds=new Rect();card.getDrawingRect(bounds);root.offsetDescendantRectToMyCoords(card,bounds);
+            if(Rect.intersects(textBounds,bounds))overlaps=true;
+        }
+        // The filename is secondary; keep panel content readable without moving the dock.
+        int visibility=overlaps?View.INVISIBLE:View.VISIBLE;
+        if(caption.getVisibility()!=visibility)caption.setVisibility(visibility);
     }
     private View addTool(LinearLayout parent,String label,Runnable action) {
         TextView b=text(label,14,theme.panelText()); b.setGravity(Gravity.CENTER);

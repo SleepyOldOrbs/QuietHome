@@ -77,3 +77,5 @@ Avoid committing these backups or device screenshots to a public issue. Keep you
 See [local video setup](VIDEO-BACKGROUNDS.md) for the verified copy helper, input limits and recovery. Videos are separate from the APK and settings export. Back up the videos directory alongside your settings. Old backups restore video playback to Off.
 
 Version 1.10 adds theme ID 8 (Summertime) and video mode 3 (Home screen only). IDs 0–7 for themes and 0–2 for video modes keep their earlier meanings. Older app versions cannot restore the new values: use a pre-update snapshot with the matching rollback APK. The generated decorative asset is bundled in the APK; local video files are still backed up separately.
+
+Version 1.11 replaces the older vector botanical drawings with generated alpha artwork and adds dock/widget sprigs. Theme IDs and backup schema are unchanged. Off/Light/Lush controls all decoration. Preserve the prior APK and settings if you want to restore the earlier artwork implementation; switching themes or choosing Off requires no reinstall.

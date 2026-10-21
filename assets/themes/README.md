@@ -1,8 +1,14 @@
-# Summertime artwork
+# Theme artwork
+
+Version 1.11 extends the generated artwork to Woodland, Meadow, Sakura, Autumn and Halloween, and adds a separate hanging sprig for each of the six nature themes. See [seasonal border prompts](SEASONAL-PROMPTS.md) and [panel sprig prompts](PANEL-PROMPTS.md). All assets were created with the built-in ChatGPT image tool with true alpha transparency; the original PNG bytes are retained.
+
+One worker decodes the requested theme only: a half-size frame and quarter-size sprig. The cache holds one theme, not the entire set. Panel decorations follow actual dock/widget bounds and are clipped away from text and controls. They do not scroll with dock apps or add focus targets. Off hides all decoration; Art mode hides it with the UI.
+
+## Original Summertime artwork
 
 `summertime.png` is a raster image generated for QuietHome with the built-in ChatGPT image-generation tool, using actual alpha transparency. It is not an SVG or a programmatic botanical drawing. No user wallpaper was used as input. The first generated frame was refined to make its edges much lighter; only the refined asset is shipped.
 
-The launcher decodes a sampled copy on a worker, caches one bitmap, and anchors the four image quadrants at the screen corners without stretching the flowers. Lower clusters include shallow bottom-edge foliage. Light/Lush adjust their size; Off hides them. Art mode hides the artwork. There is no runtime image generation, download or animation.
+The original 1.10 implementation decoded a sampled copy on a worker and anchored the four image quadrants at the screen corners without stretching the flowers. Lower clusters include shallow bottom-edge foliage. Light/Lush adjust their size; Off hides them. Art mode hides the artwork. There is no runtime image generation, download or animation.
 
 ## Initial generation prompt
 
