@@ -195,7 +195,7 @@ public final class HomeActivity extends Activity {
         allAppsButton=addTool(tools,"All apps",()->showApps(false));
         addTool(tools,"Edit dock",()->editDock());
         addTool(tools,"Inputs",()->showInputs());
-        addTool(tools,"Wallpaper",()->nextScene());
+        addTool(tools,"Art mode",()->setArtworkVisible(true));
         addTool(tools,"Home options",()->homeOptions());
         addTool(tools,"Settings",()->launchSettings());
         TextView hint=text("Hold OK to arrange",11,0xFFC0C8CE);
@@ -482,6 +482,10 @@ public final class HomeActivity extends Activity {
         if(wallpapers.length==0||loading)return;
         wallpaperDeck.next(); loadScene();
     }
+    private void browseScene(int direction) {
+        if(wallpapers.length==0||loading)return;
+        wallpaperDeck.browse(direction); loadScene();
+    }
     private void loadScene() {
         rotation.restart(SystemClock.elapsedRealtime());
         if(wallpapers.length==0||loading)return;
@@ -594,6 +598,10 @@ public final class HomeActivity extends Activity {
         }
         if(event.getAction()==KeyEvent.ACTION_DOWN){
             if(artworkVisible){
+                if(key==KeyEvent.KEYCODE_DPAD_LEFT || key==KeyEvent.KEYCODE_DPAD_RIGHT){
+                    browseScene(key==KeyEvent.KEYCODE_DPAD_LEFT?-1:1);
+                    swallowedKey=key;return true;
+                }
                 setArtworkVisible(false);
                 if(navigationKey(key)){swallowedKey=key;return true;}
             }

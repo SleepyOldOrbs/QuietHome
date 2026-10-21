@@ -49,7 +49,7 @@ final class HomeWidgets {
             latitude=Double.parseDouble(prefs.getString("widget_lat",Double.toString(latitude)));
             longitude=Double.parseDouble(prefs.getString("widget_lon",Double.toString(longitude)));
         }catch(NumberFormatException e){town="";}
-        source=prefs.getInt("widget_news_source",source);if(source<0||source>2)source=0;
+        source=prefs.getInt("widget_news_source",source);if(source<0||source>=WidgetData.NEWS_NAMES.length)source=0;
         weather=readCache("widget_weather_cache");
         if(weather!=null&&!town.equals(weather.optString("town")))weather=null;
         news=readCache("widget_news_cache");
@@ -115,14 +115,14 @@ final class HomeWidgets {
     void render(){
         newsCard.setVisibility(enabled("news")?View.VISIBLE:View.GONE);
         weatherCard.setVisibility(enabled("weather")?View.VISIBLE:View.GONE);
-        newsTitle.setText(WidgetData.NEWS_NAMES[source]+"  ·  bbc.co.uk/news");
+        newsTitle.setText(WidgetData.NEWS_NAMES[source]+"  ·  "+WidgetData.NEWS_DOMAINS[source]);
         if(news==null)headlines.setText(newsFailed?"Headlines unavailable":"Loading headlines…");
         else{
             JSONArray list=news.optJSONArray("items");StringBuilder text=new StringBuilder();
             if(list!=null)for(int i=0;i<Math.min(2,list.length());i++){
                 if(i>0)text.append("\n");text.append("• ").append(list.optJSONObject(i).optString("title"));
             }
-            headlines.setText(text);
+            headlines.setText(text.length()==0?"A quiet moment - no matching good-news stories right now.":text);
         }
         newsStatus.setText(status(news,newsFailed));
         weatherTitle.setText(town.isEmpty()?"Weather":town+"  ·  Weather");
@@ -189,7 +189,7 @@ final class HomeWidgets {
                 if(index==0){
                     boolean[] selected={enabled("clock"),enabled("weather"),enabled("news")};
                     new AlertDialog.Builder(activity).setTitle("Show on Home")
-                        .setMultiChoiceItems(new String[]{"Clock and date (offline)","Weather (contacts Open-Meteo)","News (contacts BBC)"},selected,(d,i,value)->selected[i]=value)
+                        .setMultiChoiceItems(new String[]{"Clock and date (offline)","Weather (contacts Open-Meteo)","News (contacts selected publisher)"},selected,(d,i,value)->selected[i]=value)
                         .setPositiveButton("Save",(d,i)->{
                             invalidateRequests();
                             prefs.edit().putBoolean("widget_clock",selected[0]).putBoolean("widget_weather",selected[1])
@@ -206,7 +206,7 @@ final class HomeWidgets {
                 if(index==2)readNews();
                 if(index==3){refresh(true);Toast.makeText(activity,busy?"Refreshing widgets…":"Enable weather or news first.",Toast.LENGTH_SHORT).show();}
                 if(index==4)new AlertDialog.Builder(activity).setTitle("About these widgets")
-                    .setMessage("Clock: this TV's time and time zone.\n\nWeather: "+town+", "+(fahrenheit()?"Fahrenheit":"Celsius")+". Modelled conditions from Open-Meteo (CC BY 4.0), not a local sensor. Location lookup uses GeoNames via Open-Meteo.\nhttps://open-meteo.com/\n\nNews: BBC's published headlines and summaries. No AI rewriting.\nhttps://www.bbc.co.uk/news\n\nFeeds refresh about every 30 minutes while Home is open. Last successful results stay on this TV. Providers receive your IP address; weather requests include the chosen town's coordinates. No location access, account, analytics or advertising SDKs.")
+                    .setMessage("Clock: this TV's time and time zone.\n\nWeather: "+town+", "+(fahrenheit()?"Fahrenheit":"Celsius")+". Modelled conditions from Open-Meteo (CC BY 4.0), not a local sensor. Location lookup uses GeoNames via Open-Meteo.\nhttps://open-meteo.com/\n\nNews: "+WidgetData.NEWS_CREDITS[source]+" published headlines and summaries. No AI rewriting. Good news filters common distressing topics; it cannot guarantee tone.\nhttps://"+WidgetData.NEWS_DOMAINS[source]+"\n\nFeeds refresh about every 30 minutes while Home is open. Last successful results stay on this TV. Providers receive your IP address; weather requests include the chosen town's coordinates. No location access, account, analytics or advertising SDKs.")
                     .setPositiveButton("Close",null).show();
                 if(index==5)chooseTown();
                 if(index==8)new AlertDialog.Builder(activity).setTitle("Temperature units")
@@ -292,10 +292,10 @@ final class HomeWidgets {
             .setItems(titles,(d,i)->{
                 JSONObject story=list.optJSONObject(i);
                 new AlertDialog.Builder(activity).setTitle(story.optString("title"))
-                    .setMessage(story.optString("description")+"\n\nBBC News · "+story.optString("pubDate")+"\n"+story.optString("link"))
+                    .setMessage(story.optString("description")+"\n\n"+WidgetData.NEWS_CREDITS[source]+" · "+story.optString("pubDate")+"\n"+story.optString("link"))
                     .setPositiveButton("Close",null).setNeutralButton("Open source",(dialog,which)->{
                         String link=story.optString("link");
-                        if(WidgetData.validArticle(link))try{activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(link)));}
+                        if(WidgetData.validArticle(link,source))try{activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(link)));}
                         catch(RuntimeException e){Toast.makeText(activity,"No web browser is available on this TV.",Toast.LENGTH_LONG).show();}
                     }).show();
             }).setNegativeButton("Close",null).show();

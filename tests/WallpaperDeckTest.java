@@ -30,12 +30,26 @@ public final class WallpaperDeckTest {
                 check(seen.equals(new HashSet<>(Arrays.asList(catalog))), "Incomplete cycle");
             }
         }
+        for(int size:new int[]{1,2,122}){
+            String[] catalog=new String[size];for(int i=0;i<size;i++)catalog[i]="photo-"+i;
+            WallpaperDeck browse=new WallpaperDeck(catalog,null,0,null,new Random(9));
+            List<String> order=browse.order();
+            for(int i=0;i<size;i++){
+                String original=browse.current();
+                browse.browse(-1);browse.browse(1);
+                check(original.equals(browse.current()),"Left/Right inverse including wrap");
+                browse.browse(1);browse.browse(-1);
+                check(original.equals(browse.current()),"Right/Left inverse including wrap");
+                check(order.equals(browse.order()),"Manual browse reshuffled collection");
+                browse.browse(1);
+            }
+        }
         WallpaperDeck repaired = new WallpaperDeck(new String[]{"a","b","c"},
             Arrays.asList("a","a","b"), 1, "b", new Random(5));
         check(repaired.current().equals("b"), "Repair failed to preserve current image");
         check(new HashSet<>(repaired.order()).size()==3, "Corrupt state not repaired");
         WallpaperDeck empty = new WallpaperDeck(new String[0], null, 0, null, new Random(1));
-        check(empty.current()==null && empty.next()==null, "Empty collection failed");
+        check(empty.current()==null && empty.next()==null && empty.browse(-1)==null, "Empty collection failed");
         System.out.println("PASS: 20 cycles at sizes 1, 2, 122; restart at every position; no repeats; corrupt-state repair; empty collection.");
     }
 }

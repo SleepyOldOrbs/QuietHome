@@ -25,7 +25,7 @@ final class SettingsBackup {
     }
     static void validateWidgets(JSONObject state) throws JSONException {
         bool(state,"clock");bool(state,"weather");bool(state,"news");
-        long source=integer(state,"source");if(source<0||source>2)throw new JSONException("Unknown news edition");
+        long source=integer(state,"source");if(source<0||source>=WidgetData.NEWS_NAMES.length)throw new JSONException("Unknown news edition");
         string(state.get("town"),120);coordinate(state,"latitude",90);coordinate(state,"longitude",180);
         if(state.has("fahrenheit"))bool(state,"fahrenheit");
         if(state.has("clockMode")){

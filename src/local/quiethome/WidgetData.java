@@ -10,17 +10,22 @@ import javax.net.ssl.HttpsURLConnection;
 
 /** Bounded public feeds. No cookies, identifiers, redirects, or embedded web content. */
 final class WidgetData {
-    static final String[] NEWS_NAMES={"BBC UK News","BBC World News","BBC Technology"};
+    static final int GOOD_NEWS=3;
+    static final String[] NEWS_NAMES={"BBC UK News","BBC World News","BBC Technology","Good news"};
+    static final String[] NEWS_CREDITS={"BBC News","BBC News","BBC News","Good News Network"};
+    static final String[] NEWS_DOMAINS={"bbc.co.uk/news","bbc.co.uk/news","bbc.co.uk/news","goodnewsnetwork.org"};
     static final String[] NEWS_URLS={
         "https://feeds.bbci.co.uk/news/uk/rss.xml",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        "https://feeds.bbci.co.uk/news/technology/rss.xml"};
+        "https://feeds.bbci.co.uk/news/technology/rss.xml",
+        "https://www.goodnewsnetwork.org/category/news/feed/"};
     static final int MAX_BYTES=262144;
     static String fetch(String address) throws IOException {
         URL url=new URL(address);
         if(!url.getProtocol().equals("https") ||
             !(url.getHost().equals("api.open-meteo.com") || url.getHost().equals("feeds.bbci.co.uk") ||
-                url.getHost().equals("geocoding-api.open-meteo.com")))
+                url.getHost().equals("geocoding-api.open-meteo.com") ||
+                address.equals(NEWS_URLS[GOOD_NEWS])))
             throw new IOException("Unsupported feed");
         HttpsURLConnection connection=(HttpsURLConnection)url.openConnection();
         connection.setConnectTimeout(7000);connection.setReadTimeout(7000);
@@ -77,6 +82,7 @@ final class WidgetData {
         }
     }
     static JSONObject news(String body,int source) throws Exception {
+        if(source<0||source>=NEWS_URLS.length)throw new IOException("Unknown news edition");
         if(body.length()>MAX_BYTES || body.toUpperCase(Locale.ROOT).contains("<!DOCTYPE") ||
             body.toUpperCase(Locale.ROOT).contains("<!ENTITY"))throw new IOException("Unsupported XML");
         XmlPullParser parser=Xml.newPullParser();
@@ -95,19 +101,38 @@ final class WidgetData {
                     item.put(name,value);
                 }
             }else if(event==XmlPullParser.END_TAG && parser.getName().equals("item") && item!=null){
-                if(!item.optString("title").isEmpty() && validArticle(item.optString("link")))stories.put(item);
+                if(source==GOOD_NEWS){
+                    item.put("title",plainText(item.optString("title")));
+                    item.put("description",plainText(item.optString("description")));
+                }
+                if(!item.optString("title").isEmpty() && validArticle(item.optString("link"),source) &&
+                    (source!=GOOD_NEWS || calmStory(item.optString("title")+" "+item.optString("description"))))stories.put(item);
                 item=null;
                 if(stories.length()==5)break;
             }
         }
-        if(stories.length()==0)throw new IOException("No headlines available");
+        if(stories.length()==0 && source!=GOOD_NEWS)throw new IOException("No headlines available");
         return new JSONObject().put("items",stories).put("source",source).put("at",System.currentTimeMillis());
     }
+    static String plainText(String html){
+        String safe=html.replaceAll("(?is)<(script|style)\\b[^>]*>.*?</\\1>"," ")
+            .replaceAll("(?is)<img\\b[^>]*>"," ");
+        return android.text.Html.fromHtml(safe).toString().replace('\u00a0',' ').replaceAll("\\s+"," ").trim();
+    }
+    // A deliberately conservative lexical filter, not a guarantee about editorial tone.
+    static boolean calmStory(String text){
+        return !java.util.regex.Pattern.compile("(?iu)\\b(wars?|warfare|bomb\\w*|terror\\w*|shoot\\w*|murder\\w*|kill\\w*|dead|death\\w*|died|dying|fatal\\w*|suicid\\w*|abuse\\w*|assault\\w*|rape|raped|violence|violent|crime\\w*|criminal\\w*|prison\\w*|hostage\\w*|trauma\\w*|traged\\w*|tragic|disaster\\w*|earthquake\\w*|hurricane\\w*|wildfire\\w*|flood\\w*|crisis|crises|doom\\w*|cancer\\w*|disease\\w*|pandemic\\w*|injur\\w*|struck by lightning|heart attack|cardiac arrest|politic\\w*|election\\w*|trump|putin|gaza|ukraine)\\b").matcher(text).find();
+    }
     static boolean validArticle(String link){
+        return validArticle(link,0);
+    }
+    static boolean validArticle(String link,int source){
         try{
             URI uri=new URI(link);
             return "https".equals(uri.getScheme()) && uri.getUserInfo()==null &&
-                ("www.bbc.co.uk".equals(uri.getHost())||"www.bbc.com".equals(uri.getHost()));
+                (uri.getPort()==-1||uri.getPort()==443) &&
+                (source==GOOD_NEWS?"www.goodnewsnetwork.org".equals(uri.getHost()):
+                ("www.bbc.co.uk".equals(uri.getHost())||"www.bbc.com".equals(uri.getHost())));
         }catch(Exception e){return false;}
     }
     static String age(long at,long now){

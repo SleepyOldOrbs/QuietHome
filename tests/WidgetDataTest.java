@@ -50,8 +50,24 @@ public final class WidgetDataTest {
         HomeWidgets.validate(settings);
         try{HomeWidgets.validate(new JSONObject(settings.toString()).put("latitude",95));throw new AssertionError("bad coordinates accepted");}
         catch(JSONException expected){}
-        try{HomeWidgets.validate(new JSONObject(settings.toString()).put("source",3));throw new AssertionError("bad source accepted");}
+        try{HomeWidgets.validate(new JSONObject(settings.toString()).put("source",4));throw new AssertionError("bad source accepted");}
         catch(JSONException expected){}
+        HomeWidgets.validate(new JSONObject(settings.toString()).put("source",3));
+        String positive="<item><title><![CDATA[Neighbours &amp; friends plant a garden]]></title><description><![CDATA[<p>A <b>lovely</b> day.</p><img src='https://invalid.example/tracker'>]]></description><link>https://www.goodnewsnetwork.org/garden/</link></item>";
+        String distress=positive.replace("Neighbours &amp; friends plant a garden","Hope after a deadly war");
+        JSONObject calm=WidgetData.news("<rss><channel>"+distress+positive+"</channel></rss>",3);
+        check(calm.getJSONArray("items").length()==1,"distressing story excluded");
+        check(calm.getJSONArray("items").getJSONObject(0).getString("title").equals("Neighbours & friends plant a garden"),"HTML entities decoded");
+        check(calm.getJSONArray("items").getJSONObject(0).getString("description").equals("A lovely day."),"HTML stripped without image loading");
+        check(WidgetData.news("<rss><channel>"+distress+"</channel></rss>",3).getJSONArray("items").length()==0,"all filtered means quiet empty state");
+        check(!WidgetData.validArticle("https://www.bbc.co.uk/news/a",3),"publisher isolation");
+        check(!WidgetData.validArticle("https://www.goodnewsnetwork.org.evil.example/a",3),"lookalike rejected");
+        check(!WidgetData.validArticle("https://www.goodnewsnetwork.org@evil.example/a",3),"good-news userinfo rejected");
+        check(WidgetData.calmStory("Award for a wildlife garden"),"word boundaries avoid award false positive");
+        check(!WidgetData.calmStory("A happy ending after an injury"),"summary filter");
+        JSONObject goodLive=WidgetData.news(WidgetData.fetch(WidgetData.NEWS_URLS[3]),3);
+        check(goodLive.getJSONArray("items").length()>0,"live good-news feed");
+        System.out.println("PASS: filtered good news, HTML cleanup, publisher isolation, live Good News Network");
         JSONObject live=WidgetData.news(WidgetData.fetch(WidgetData.NEWS_URLS[0]),0);
         check(live.getJSONArray("items").length()>0,"live BBC feed");
         JSONObject sample=WidgetData.weather(WidgetData.fetch("https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"));

@@ -29,6 +29,13 @@ final class WallpaperDeck {
     int position() { return position; }
     List<String> order() { return new ArrayList<>(order); }
 
+    /** Manual browsing wraps within the saved shuffle, so Left then Right is reversible. */
+    String browse(int direction) {
+        if(order.isEmpty())return null;
+        position=(position+(direction<0?-1:1)+order.size())%order.size();
+        return current();
+    }
+
     String next() {
         if (order.isEmpty()) return null;
         String previous = current();

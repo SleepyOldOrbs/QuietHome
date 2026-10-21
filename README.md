@@ -13,11 +13,11 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 
 - **An app dock you control.** Choose favourites, use compact or standard tiles, and hold OK to rearrange them. The dock refreshes when apps change; temporarily unavailable favourites keep their saved positions.
 - **Your own wallpaper collection.** Shuffle without repeats, avoid an immediate repeat between cycles, and remember the current image after restarting. Rotate every 1, 5 or 15 minutes, or pause for manual changes. Time away from Home does not consume the interval. Choose fill/crop or fit the whole image with borders.
-- **Artwork mode.** Fade the interface away after 30 seconds, one minute or two minutes. The first navigation or OK press brings the controls back without accidentally launching an app.
+- **Artwork mode.** Hide the interface immediately with Art mode, or after 30 seconds, one minute or two minutes. Left/Right browse the pictures while the interface stays hidden. Up, Down, OK or Back bring the controls back without launching an app.
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.
 - **Clock and date.** Follow the TV's local time without a network request; choose system, 12-hour or 24-hour display.
 - **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius or Fahrenheit. Unit changes work offline.
-- **Optional BBC news.** Choose UK, World or Technology. Read headlines and the publisher's short summaries with the remote.
+- **Optional news.** Choose Good news from Good News Network, or BBC UK, World or Technology. Good news excludes common distressing topics using a conservative word filter; it cannot guarantee editorial tone. Read publisher headlines and short summaries with the remote.
 - **Local settings backups.** Save and restore the dock, gallery state, artwork delay and widget preferences.
 - **TV input shortcuts.** List the available passthrough inputs using the TV's own labels.
 
@@ -25,9 +25,9 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Current source: **1.5-preview.8**, developed through [eight documented improvement loops](docs/IMPROVEMENT-LOOPS.md). Host tests, Android parser/settings tests, live feeds and selected UI/remote-navigation flows have been checked on an Android TV API 31 emulator.
+Current source: **1.6-preview.1**, adding immediate Art mode, remote picture browsing and an optional filtered good-news feed to the [eight documented improvement loops](docs/IMPROVEMENT-LOOPS.md). Host tests and Android parser/settings tests, including live feeds, have passed. See [validation](docs/TESTING.md) for the checks and their limits.
 
-The earlier 1.4 launcher was exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. The new preview has **not** been deployed to that household TV; emulator checks do not certify HDMI, playback, audio or a physical remote.
+Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 
 The public build has portable tooling and an empty-wallpaper fallback. It is not a certified replacement for every Android TV or Google TV device. The manifest declares API 23 as its minimum; older Android versions and other manufacturers have not been validated. Some input shortcuts and the initial TV tile are Sony-specific.
 
@@ -85,9 +85,10 @@ This project does not root the TV, flash firmware, disable manufacturer packages
 | Reach widgets | Up from the dock |
 | Read news summaries | OK on the news card |
 | Return from a widget | Down |
-| Advance the picture | Wallpaper |
+| Hide the interface | Art mode |
+| Browse pictures while the interface is hidden | Left / Right |
 | Configure widgets or artwork mode | Home options |
-| Restore controls in artwork mode | Navigation, OK, Back, Menu or Home |
+| Restore controls in artwork mode | Up, Down, OK, Back, Menu or Home |
 
 Volume and media buttons retain their normal actions. Open dialogs pause the artwork timer. The launcher does not keep the screen awake or override the TV's sleep/panel-protection settings.
 
@@ -117,6 +118,6 @@ CI builds the APK and runs the offline tests. [Validation instructions](docs/TES
 
 [MIT](LICENSE), copyright SleepyOldOrbs.
 
-Weather: [Open-Meteo](https://open-meteo.com/), CC BY 4.0. Town search uses GeoNames data through Open-Meteo. News headlines and summaries come from [BBC RSS feeds](https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm) and remain subject to BBC's terms. Third-party content and installed apps are not covered by this project's MIT licence.
+Weather: [Open-Meteo](https://open-meteo.com/), CC BY 4.0. Town search uses GeoNames data through Open-Meteo. News headlines and summaries come from [BBC RSS feeds](https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm) or [Good News Network](https://www.goodnewsnetwork.org/category/news/feed/) and remain subject to their publishers' terms. Third-party content and installed apps are not covered by this project's MIT licence.
 
-QuietHome is an independent project, not affiliated with Sony, Google, Apple, BBC or Open-Meteo.
+QuietHome is an independent project, not affiliated with Sony, Google, Apple, BBC, Good News Network or Open-Meteo.

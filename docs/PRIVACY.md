@@ -13,12 +13,15 @@ The clock and wallpaper rotation are local. Images are read from the app's bundl
 | `api.open-meteo.com` | Weather forecast/current modelled conditions | Chosen town coordinates and weather fields |
 | `geocoding-api.open-meteo.com` | Explicit town search | The search text entered by the user |
 | `feeds.bbci.co.uk` | Public RSS | Selected UK, World or Technology feed |
+| `www.goodnewsnetwork.org` | Public RSS | Good news edition; exact path `/category/news/feed/` only |
 
 Requests use HTTPS and a fixed QuietHome user-agent. Providers see the public IP address of the connection. Requests do not include a device serial, app list, account credentials or advertising identifier.
 
 Feed fetches allow only these hosts, reject redirects, bound the response size to 256 KiB and apply connection/read timeouts. RSS parsing rejects document type/entity declarations. News text is displayed as text, not executed HTML.
 
-The **Open source** action validates a BBC HTTPS link and sends it to an external browser. Browser and BBC page behaviour are outside QuietHome's feed-fetching boundary.
+The **Open source** action validates an HTTPS link belonging to the selected publisher (BBC or Good News Network) and sends it to an external browser. Browser and publisher-page behaviour are outside QuietHome's feed-fetching boundary.
+
+Good news strips feed HTML without loading embedded images and excludes common distressing words in titles and summaries locally. It does not send text to an AI service, rewrite stories or silently fall back to an unfiltered news edition. A word filter cannot guarantee tone. If every story is excluded, the card shows a quiet empty state. Existing news-source preferences are retained until the user changes them.
 
 ## Refreshing and caching
 
