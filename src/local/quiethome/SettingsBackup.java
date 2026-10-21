@@ -36,7 +36,14 @@ final class SettingsBackup {
     }
     static void validate(JSONObject state) throws JSONException {
         if(integer(state,"schema")!=1)throw new JSONException("Unknown schema");
-        if(state.has("theme")){long theme=integer(state,"theme");if(theme<0||theme>2)throw new JSONException("Invalid theme");}
+        if(state.has("theme")){long theme=integer(state,"theme");if(theme<0||theme>=ThemeStyle.NAMES.length)throw new JSONException("Invalid theme");}
+        if(state.has("appearance")){
+            JSONObject appearance=state.getJSONObject("appearance");
+            for(String key:new String[]{"accent","tint","transparency","density"}){
+                long value=integer(appearance,key);long max=key.equals("transparency")?100:key.equals("density")?2:0xFFFFFF;
+                if(value<0||value>max)throw new JSONException("Invalid appearance: "+key);
+            }
+        }
         bool(state,"compact");JSONArray favourites=state.getJSONArray("favourites");
         if(favourites.length()>100)throw new JSONException("Too many favourites");
         for(int i=0;i<favourites.length();i++){

@@ -98,11 +98,11 @@ final class HomeWidgets {
         v.setOnFocusChangeListener((view,focus)->{
             view.setBackground(theme.surface(view,focus,dp(16)));
             LinearLayout card=(LinearLayout)view;for(int i=0;i<card.getChildCount();i++)if(card.getChildAt(i) instanceof TextView)
-                ((TextView)card.getChildAt(i)).setTextColor(focus?0xFF14201F:Color.WHITE);
+                ((TextView)card.getChildAt(i)).setTextColor(focus?theme.focusText():theme.panelText());
         });return v;
     }
     private TextView line(LinearLayout parent,String value,int size,int color){
-        TextView text=new TextView(activity);text.setText(value);text.setTextSize(size);text.setTextColor(color);
+        TextView text=new TextView(activity);text.setText(value);text.setTextSize(size);text.setTextColor(theme.panelText());
         parent.addView(text,new LinearLayout.LayoutParams(-1,-2));return text;
     }
     private JSONObject readCache(String key){

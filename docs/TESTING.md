@@ -65,3 +65,22 @@ User feedback identified overly opaque glass and tiles drawing outside the dock.
 Host tests and public/private builds passed. TV screenshots were inspected with the first tile selected and after scrolling through the dock, including a scrolled selection after a launcher restart. Selected highlights remain inside the frame in compact and standard tile sizes. The absolute final favourite in the expanded dock was not separately checked. Widget focus and wallpaper visibility were checked on the actual TV. No new network, permission or settings-schema change is included. The previous preview's full performance table is labelled separately; it is not a fresh benchmark of this visual update.
 
 An original-key update, rollback to preview-1 source and reapplication of preview 2 passed on the TV, with dock/widget/theme preferences exported and verified. All 122 bundled wallpapers remain byte-identical. Recovery packages, private settings and screenshots are excluded from the public repository.
+
+## 1.8 preview 1 appearance and botanical borders
+
+Adds Woodland, Meadow, Sakura, Autumn and Halloween presets, highlight/panel colour swatches and custom hex entry, a live transparency slider and Off/Light/Lush borders. Borders are original static vector drawings recorded on size/style changes. Art mode hides the decoration with the rest of the interface. Focus highlights are solid with automatic black/white text; very transparent panels deliberately expose the wallpaper, so preview readability before saving.
+
+Validation on the authorised Android 12 TV:
+
+- Host tests and public/private builds passed. New host tests sample over 16,000 highlight colours for at least 4.5:1 label contrast, reject malformed hex values and check immutable preview values.
+- Android settings tests accept older backups and all eight theme IDs, reject malformed appearance fields before mutation, and exercise existing widget/feed parsing. Live provider tests passed.
+- Screenshots inspected for all five new presets, the custom colour editor and remote-adjusted transparency endpoints. Top branches/flowers were moved clear of the clock; swatch padding was corrected after visual inspection.
+- Custom hex `#254F3A` and remote-selected white panel tint were saved and verified through fresh settings exports. Solid white panels switch labels to black. Transparency Cancel and border-density Back discard previews; Off and Lush save correctly. Theme reset restores defaults.
+- Scrolling to the final favourite keeps its focus highlight within the dock. Art mode removes all UI/borders, Right changes the image, and OK restores the UI.
+- Existing favourites, compact tiles and widget configuration were preserved. All 122 private wallpaper files were compared and remained byte-identical. The private APK grew by approximately 12 KiB.
+
+No new permission, provider endpoint, animation loop or background media playback is added. This is not a new latency benchmark or physical TV/HDMI/audio certification. Private APKs, screenshots, settings and device identity remain outside the repository.
+
+Implementation references: Android's [custom-view optimisation guidance](https://developer.android.com/develop/ui/views/layout/custom-views/optimizing-view) and [SeekBar keyboard increments](https://developer.android.com/reference/android/widget/SeekBar#setKeyProgressIncrement(int)).
+
+Original-key APK rollback to the previous source and reapplication of 1.8 passed on the TV. Fresh exports verified dock, widget, gallery timing/framing, theme and new appearance fields; recovery files are kept privately.

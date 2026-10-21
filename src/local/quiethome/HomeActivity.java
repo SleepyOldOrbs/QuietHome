@@ -26,6 +26,7 @@ public final class HomeActivity extends Activity {
     private WallpaperLoader.Frame currentFrame;
     private String currentImage;
     private HomeTheme theme;
+    private NatureBorder natureBorder;
     private boolean catalogBusy;
     private long catalogGeneration;
     private ImageView background;
@@ -130,7 +131,7 @@ public final class HomeActivity extends Activity {
             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         long interval=getPreferences(0).getLong("wallpaper_interval",60000);
         rotation.setInterval(RotationTimer.supported(interval)?interval:60000,SystemClock.elapsedRealtime());
-        theme=new HomeTheme(getPreferences(0).getInt("theme",1));
+        theme=new HomeTheme(HomeTheme.read(getPreferences(0)));
         imageLoader=new WallpaperLoader(getAssets(),handler,(name,frame,elapsed,cached)->{
             loading=false;if(frame==null){toast("That picture could not be loaded.");return;}
             currentFrame=frame;currentImage=name;background.setImageBitmap(frame.image);
@@ -212,6 +213,8 @@ public final class HomeActivity extends Activity {
         shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
             new int[]{0x50000000,0x08000000,0xE80A1018}));
         root.addView(shade,new FrameLayout.LayoutParams(-1,-1));
+        natureBorder=new NatureBorder(this,theme.style);
+        root.addView(natureBorder,new FrameLayout.LayoutParams(-1,-1));
 
         LinearLayout header=new LinearLayout(this); header.setGravity(Gravity.CENTER_VERTICAL);
         headerView=header;
@@ -267,13 +270,13 @@ public final class HomeActivity extends Activity {
         if(active)widgets.start();
     }
     private View addTool(LinearLayout parent,String label,Runnable action) {
-        TextView b=text(label,14,0xFFE2E7EB); b.setGravity(Gravity.CENTER);
+        TextView b=text(label,14,theme.panelText()); b.setGravity(Gravity.CENTER);
         b.setId(View.generateViewId());
         b.setPadding(dp(12),0,dp(12),0); b.setFocusable(true); b.setClickable(true);
         b.setBackground(theme.surface(b,false,dp(12)));
         b.setOnFocusChangeListener((v,f)->{
             b.setBackground(theme.surface(b,f,dp(12)));
-            b.setTextColor(f?0xFF13201E:0xFFE2E7EB);
+            b.setTextColor(f?theme.focusText():theme.panelText());
         });
         b.setOnClickListener(v->action.run());
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,dp(40));
@@ -296,7 +299,7 @@ public final class HomeActivity extends Activity {
             ImageView icon=new ImageView(this); icon.setImageDrawable(a.icon);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(icon,new LinearLayout.LayoutParams(dp(compact?48:58),dp(compact?48:58)));
-            TextView label=text(a.name,compact?14:15,Color.WHITE); label.setGravity(Gravity.CENTER);
+            TextView label=text(a.name,compact?14:15,theme.panelText()); label.setGravity(Gravity.CENTER);
             label.setSingleLine(true); label.setPadding(0,dp(5),0,0);
             card.addView(label,new LinearLayout.LayoutParams(-1,-2));
             card.setOnFocusChangeListener((v,f)->{
@@ -313,7 +316,7 @@ public final class HomeActivity extends Activity {
                         else if(right>x+width)dockScroll.smoothScrollTo(right-width,0);
                     });
                 }
-                card.setBackground(theme.surface(card,f,dp(15))); label.setTextColor(f?0xFF14201F:Color.WHITE);
+                card.setBackground(theme.surface(card,f,dp(15))); label.setTextColor(f?theme.focusText():theme.panelText());
                 card.animate().scaleX(f?1.035f:1).scaleY(f?1.035f:1).setDuration(120).start();
             });
             card.setOnClickListener(v->open(a));
@@ -394,10 +397,10 @@ public final class HomeActivity extends Activity {
             }).setNegativeButton("Close",null).show();
     }
     private void appearanceOptions(){
-        new AlertDialog.Builder(this).setTitle("Appearance").setSingleChoiceItems(HomeTheme.NAMES,theme.mode,(dialog,index)->{
-            getPreferences(0).edit().putInt("theme",index).apply();theme=new HomeTheme(index);
-            dialog.dismiss();build();handler.removeCallbacks(tick);if(active)handler.post(tick);armArtwork();
-        }).setNegativeButton("Cancel",null).show();
+        new AppearanceEditor(this,theme,natureBorder,()->{
+            theme=new HomeTheme(HomeTheme.read(getPreferences(0)));
+            build();handler.removeCallbacks(tick);if(active)handler.post(tick);armArtwork();
+        }).show();
     }
     private void arrangeDock() {
         String[] labels=new String[favourites.size()];
@@ -445,7 +448,11 @@ public final class HomeActivity extends Activity {
     private JSONObject stateJson() throws JSONException {
         JSONObject state=new JSONObject();
         state.put("schema",1);state.put("favourites",new JSONArray(favourites));state.put("compact",compact);
-        if(theme!=null)state.put("theme",theme.mode);
+        if(theme!=null){
+            state.put("theme",theme.mode);ThemeStyle style=HomeTheme.read(getPreferences(0));
+            state.put("appearance",new JSONObject().put("accent",style.accent).put("tint",style.tint)
+                .put("transparency",style.transparency).put("density",style.density));
+        }
         if(widgets!=null)state.put("widgets",widgets.state());
         if(wallpaperDeck!=null){
             JSONObject gallery=new JSONObject();
@@ -549,8 +556,10 @@ public final class HomeActivity extends Activity {
                 widgets.restore(restoredWidgets);
                 clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
             }
-            int restoredTheme=state.optInt("theme",1);getPreferences(0).edit().putInt("theme",restoredTheme).apply();
-            theme=new HomeTheme(restoredTheme);persist();build();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
+            int restoredTheme=state.optInt("theme",1);
+            ThemeStyle style=ThemeStyle.defaults(restoredTheme);JSONObject appearance=state.optJSONObject("appearance");
+            if(appearance!=null)style=new ThemeStyle(restoredTheme,appearance.getInt("accent"),appearance.getInt("tint"),appearance.getInt("transparency"),appearance.getInt("density"));
+            HomeTheme.save(getPreferences(0),style);theme=new HomeTheme(style);persist();build();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
         }catch(Exception e){toast(changesStarted?"Restore failed after saving a recovery backup. Use Restore backup to recover.":"This backup could not be restored. Your settings are unchanged.");}
     }
     private void nextScene() {
@@ -622,7 +631,7 @@ public final class HomeActivity extends Activity {
     }
     private void setArtworkVisible(boolean visible){
         artworkVisible=visible;
-        for(View view:new View[]{headerView,lowerView,shadeView,widgets==null?null:widgets.view}){
+        for(View view:new View[]{headerView,lowerView,shadeView,natureBorder,widgets==null?null:widgets.view}){
             if(view==null)continue;
             view.animate().cancel();
             if(visible){

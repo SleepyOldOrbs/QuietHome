@@ -16,7 +16,8 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **Artwork mode.** Hide the interface immediately with Art mode, or after 30 seconds, one minute or two minutes. Left/Right browse the pictures while the interface stays hidden. Up, Down, OK or Back bring the controls back without launching an app.
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.
 - **Clock and date.** Follow the TV's local time without a network request; choose system, 12-hour or 24-hour display.
-- **Three themes.** Frosted Glass uses a small, pre-blurred copy of your wallpaper; Midnight has dark blue panels; Gallery uses warm neutral panels. Choose one in **Home options → Appearance**.
+- **Eight themes.** Frosted Glass, Midnight and Gallery are joined by Woodland ivy, Meadow flowers, Sakura blossom, Autumn leaves and Halloween pumpkins/bats. Static vector borders stay around the edges and disappear in Art mode. Choose a preset in **Home options → Appearance → Theme**.
+- **Your own colours and transparency.** Pick highlight/panel swatches or enter a custom `#RRGGBB` colour. Preview transparency with Left/Right in 5% steps and choose Off, Light or Lush borders. Save commits a preview; Cancel or Back discards it. Selection highlights remain solid with automatic black/white labels. Choosing a theme resets its appearance to that preset.
 - **Widget layouts.** Choose standard, compact or clock-only cards and swap the news/weather positions in **Home options → Widgets**. Clock-only pauses feeds while preserving their settings.
 - **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius or Fahrenheit. Unit changes work offline.
 - **Optional news.** Choose Good news from Good News Network, or BBC UK, World or Technology. Good news excludes common distressing topics using a conservative word filter; it cannot guarantee editorial tone. Read publisher headlines and short summaries with the remote.
@@ -27,7 +28,7 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Current source: **1.7-preview.2**, refining glass transparency and keeping scrolling tiles inside the dock. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
+Current source: **1.8-preview.1**, adding five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 

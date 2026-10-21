@@ -48,3 +48,7 @@ User-triggered settings exports include configuration and gallery state, but not
 This public repository deliberately omits personal wallpapers, exported preferences, screenshots from private installations, device inventories and signing material.
 
 QuietHome cannot control telemetry or network traffic from Android, the TV manufacturer's software, other apps or external browsers.
+
+## Colour and nature themes (1.8)
+
+Appearance settings are local and included in settings exports. Botanical/seasonal borders are original vector drawings recorded when size or style changes. They introduce no downloads, tracking, permissions, bitmap collection or animation timer. Art mode hides them. Colour and transparency previews are not saved until Save; leaving with Cancel or Back discards the preview. No video or animated background playback is included in this release.

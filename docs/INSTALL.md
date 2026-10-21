@@ -60,6 +60,8 @@ New optional fields cover temperature units, clock format, wallpaper timing and 
 
 Version 1.7 adds theme, widget layout and card positions. A backup without a theme uses Midnight; an older widget section without layout/positions uses standard cards with news on the left. Saved visibility choices survive clock-only mode. Unknown or incorrectly typed values are rejected before preferences are changed.
 
+Version 1.8 adds an optional `appearance` object with RGB accent/tint, transparency (0–100), and border density (0–2), plus five new theme IDs. These values are validated before a restore changes anything. Older backups load the saved theme with its default appearance. Older app versions cannot restore the new theme IDs: keep a pre-update settings export with your compatible, original-key rollback APK.
+
 On typical devices the files are under:
 
 ```text
