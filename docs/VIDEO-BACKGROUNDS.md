@@ -1,8 +1,10 @@
 # Local video backgrounds
 
-Version 1.9 adds silent, looping local MP4 backgrounds. Playback defaults to **Off**. Choose **Home and Art mode** or **Art mode only** in **Home options → Wallpaper settings → Video backgrounds → Playback mode**.
+Version 1.9 adds silent, looping local MP4 backgrounds. Playback defaults to **Off**. Choose **Home and Art mode**, **Art mode only** or **Home screen only** in **Home options → Wallpaper settings → Video backgrounds → Playback mode**.
 
 Use one H.264 video track, at most 1920 × 1080, 30 fps and 80 MiB. Start with 1280 × 720 at 24 fps for an older TV. Hardware capabilities vary; these limits are a conservative input policy, not a playback guarantee. Videos fill the screen with centred cropping. QuietHome mutes all audio and does not request audio focus or a wake lock.
+
+**Home screen only** (1.10) plays behind the dock and widgets, then releases the player when Art mode opens so your still-picture collection can be browsed. Returning to the Home controls resumes video. Existing saved mode values are unchanged.
 
 ## Copy a video
 

@@ -47,7 +47,7 @@ final class SettingsBackup {
         if(state.has("video")){
             JSONObject video=state.getJSONObject("video");long mode=integer(video,"mode");
             String file=string(video.get("file"),120);
-            if(mode<0||mode>2||(!file.isEmpty()&&!VideoPolicy.validName(file)))throw new JSONException("Invalid video background");
+            if(mode<0||mode>=VideoPolicy.MODES.length||(!file.isEmpty()&&!VideoPolicy.validName(file)))throw new JSONException("Invalid video background");
         }
         bool(state,"compact");JSONArray favourites=state.getJSONArray("favourites");
         if(favourites.length()>100)throw new JSONException("Too many favourites");

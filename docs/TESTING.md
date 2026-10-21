@@ -30,7 +30,7 @@ Use an isolated Android TV AVD, an explicit ADB selector and synthetic images. D
 7. Backups: save a baseline; restore an empty dock with all new preferences, save again and compare. Try a malformed optional field and verify the current settings and pre-restore snapshot count are unchanged. Restore an older schema-1 snapshot, check documented defaults, then recover the baseline.
 8. Check launcher logs for crashes/ANRs and inspect screenshots after each significant change.
 
-The eight-loop run used an Android TV API 31 x86 emulator at 1920 x 1080. Synthetic square images were used for framing/timing; the public repository remains image-free. See the [loop record](IMPROVEMENT-LOOPS.md) for actual checks and their limits.
+The eight-loop run used an Android TV API 31 x86 emulator at 1920 x 1080. Synthetic square images were used for framing/timing; private wallpaper images are excluded from the public repository. See the [loop record](IMPROVEMENT-LOOPS.md) for actual checks and their limits.
 
 ## Before deployment to a household TV
 
@@ -101,3 +101,19 @@ Validation on the authorised Android 12 TV:
 This validates the tested 720p clip, not every codec profile, bitrate or television. Video has continuous decoding/composition costs; this is not a new latency, energy or 1080p performance benchmark. Physical TV/HDMI picture, sound and the physical remote were not re-certified during this session. Existing manufacturer apps and system settings were not modified.
 
 Original-key rollback to 1.8 source and reapplication of 1.9 passed on the TV. Fresh exports verified dock, widgets, theme, appearance, gallery timing/framing and the reapplied video mode/filename. The private recovery kit verifies APK/settings/media hashes and retains existing app data.
+
+## 1.10 preview 1 Summertime and Home-only video
+
+Adds Home-screen-only video as mode 3, preserving the meanings of modes 0–2. Summertime is theme 8; existing theme IDs are unchanged. Its realistic flowers and foliage come from a generated transparent raster asset, with [prompts and provenance](../assets/themes/README.md).
+
+Validation on the authorised Android 12 TV:
+
+- Host tests, Android settings/parser tests, live provider checks and public/private builds passed. The policy matrix covers all four playback modes when active, paused, in Art mode and suppressed. Backup tests accept the new mode and reject invalid values; older snapshots remain valid.
+- The 1672 × 941 RGBA asset is 412,544 bytes; over 92% of its pixels are fully transparent. A worker decodes a sampled bitmap once per process. Android reported 1,571,680 allocated bitmap bytes (about 1.5 MiB), additional to existing caches. This does not measure total rendering memory.
+- Screenshots were inspected for Light and Lush borders, Off preview, Cancel restoration and Art mode. Flowers remain around corners and the bottom edge, clear of the clock and controls. Art mode hides the border completely.
+- Home-only playback used the existing 720p local demo. Media diagnostics confirmed a muted, looping hardware decoder on Home, no QuietHome player in Art mode or TV Settings, and resumed playback on return. Right changes the still picture in Art mode; OK restores Home.
+- The update retained dock, compact tiles, widgets, appearance and video choices before explicitly selecting the new options. All 122 private wallpapers remain byte-identical. No new permissions, provider endpoints or manufacturer-package changes were introduced.
+
+These are automated and ADB-driven checks, not a new latency benchmark or physical TV/HDMI/audio certification. Private APKs, screenshots, settings and device identifiers remain outside this repository. Bitmap sampling follows Android's [large-bitmap guidance](https://developer.android.com/topic/performance/graphics/load-bitmap).
+
+Original-key rollback to 1.9 source and reapplication of 1.10 passed on the TV. Fresh exports verified dock, widgets, gallery timing/framing, theme, appearance and video mode/filename in both directions. The private recovery script verifies file hashes, preserves app data and refuses later app versions.

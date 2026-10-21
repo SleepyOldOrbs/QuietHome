@@ -56,3 +56,7 @@ Appearance settings are local and included in settings exports. Botanical/season
 ## Local video (1.9)
 
 Video is read only from the app-specific local videos directory. Media validation runs on a worker; preparation is asynchronous. Playback is muted and released when Home is paused. No audio focus, wake lock, new permission, media URL, analytics or upload is introduced. Settings exports contain mode and filename only; keep a separate copy of the video files. Cached still-picture frost is bypassed while video is visible; panels use their existing translucent tint. See [video backgrounds](VIDEO-BACKGROUNDS.md).
+
+## Summertime artwork (1.10)
+
+Summertime bundles one generated PNG with real alpha transparency. Generation happened during development; the TV does not call an image-generation service or download decorative assets. A worker decodes one sampled bitmap (approximately 1.5 MiB on the tested TV), cached for the process lifetime; this is additional to the wallpaper cache. Static corner drawings have no animation timer. Theme/border-density preferences use the existing local settings and backups. Home-screen-only video mode releases its player in Art mode.

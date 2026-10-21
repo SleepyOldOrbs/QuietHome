@@ -4,7 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.view.View;
 
-/** Original vector botanicals, recorded once per size/style. No timer, bitmap or network. */
+/** Static borders recorded per size/style. Summertime uses generated alpha photography. No timer/network. */
 final class NatureBorder extends View {
     private final Paint paint=new Paint(3);
     private final Path path=new Path();
@@ -18,6 +18,7 @@ final class NatureBorder extends View {
     @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){record();}
     private void record(){
         picture=null;if(getWidth()==0||getHeight()==0||mode<3||density==0)return;
+        if(mode==8&&SummerArtwork.get()==null){SummerArtwork.request(getContext().getApplicationContext().getAssets(),this);return;}
         picture=new Picture();Canvas c=picture.beginRecording(getWidth(),getHeight());
         c.scale(getWidth()/960f,getHeight()/540f);
         if(mode==3){ivy(c,false);ivy(c,true);}
@@ -25,9 +26,25 @@ final class NatureBorder extends View {
         if(mode==5){sakura(c,false);sakura(c,true);}
         if(mode==6){autumn(c);}
         if(mode==7){halloween(c);}
+        if(mode==8){summer(c);}
         picture.endRecording();
     }
+    void artworkReady(){if(mode==8&&isAttachedToWindow()&&SummerArtwork.get()!=null){record();invalidate();}}
+    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();record();}
     @Override protected void onDraw(Canvas canvas){if(picture!=null)canvas.drawPicture(picture);}
+    private void summer(Canvas c){
+        Bitmap image=SummerArtwork.get();if(image==null)return;
+        int w=image.getWidth(),h=image.getHeight();
+        // Anchor photographic quadrants without stretching their petals or covering the UI.
+        float scale=960f/w*(density==2?.65f:.5f),bottomScale=960f/w*(density==2?.55f:.42f);
+        Rect source=new Rect();RectF destination=new RectF();paint.setAlpha(255);
+        for(int row=0;row<2;row++)for(int col=0;col<2;col++){
+            source.set(col*w/2,row*h/2,(col+1)*w/2,(row+1)*h/2);
+            float factor=row==0?scale:bottomScale,sw=source.width()*factor,sh=source.height()*factor;
+            float left=col==0?0:960-sw,top=row==0?0:540-sh;
+            destination.set(left,top,left+sw,top+sh);c.drawBitmap(image,source,destination,paint);
+        }
+    }
     private void line(Canvas c,int colour,float width){paint.setColor(colour);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(width);paint.setStrokeCap(Paint.Cap.ROUND);c.drawPath(path,paint);paint.setStyle(Paint.Style.FILL);}
     private void leaf(Canvas c,float x,float y,float size,float angle,int colour,boolean ivy){
         c.save();c.translate(x,y);c.rotate(angle);path.reset();path.moveTo(0,0);
