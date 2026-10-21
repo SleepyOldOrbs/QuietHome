@@ -19,6 +19,9 @@ final class HomeWidgets {
     private final Activity activity;
     private final Handler handler;
     private final SharedPreferences prefs;
+    private final HomeTheme theme;
+    private int layout;
+    private boolean weatherLeft;
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private volatile boolean active;
     private boolean busy,destroyed,weatherFailed,newsFailed;
@@ -34,8 +37,10 @@ final class HomeWidgets {
     private final Runnable refreshTask=()->refresh(false);
     private static final long INTERVAL=30*60000L;
 
-    HomeWidgets(Activity context,Handler main){
-        activity=context;handler=main;prefs=context.getPreferences(0);
+    HomeWidgets(Activity context,Handler main,HomeTheme theme){
+        activity=context;handler=main;prefs=context.getPreferences(0);this.theme=theme;
+        layout=prefs.getInt("widget_layout",0);if(layout<0||layout>2)layout=0;
+        weatherLeft=prefs.getBoolean("widget_weather_left",false);
         try(InputStream in=context.getAssets().open("widgets.json")){
             ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] bytes=new byte[1024];int n;
             while((n=in.read(bytes))!=-1){out.write(bytes,0,n);if(out.size()>4096)throw new IOException();}
@@ -71,18 +76,30 @@ final class HomeWidgets {
         view.addView(weatherCard,new LinearLayout.LayoutParams(dp(270),-2));
         newsCard.setOnClickListener(v->readNews());
         weatherCard.setOnClickListener(v->weatherDetails());
-        render();
+        arrange();render();
+    }
+    private void arrange(){
+        view.removeAllViews();boolean small=layout==1;
+        headlines.setTextSize(small?16:18);headlines.setMaxLines(small?2:4);
+        newsCard.setPadding(dp(18),dp(small?10:14),dp(18),dp(small?10:14));
+        weatherCard.setPadding(dp(18),dp(small?10:14),dp(18),dp(small?10:14));
+        LinearLayout first=weatherLeft?weatherCard:newsCard,second=weatherLeft?newsCard:weatherCard;
+        int nw=small?410:510,ww=small?240:270;
+        view.addView(first,new LinearLayout.LayoutParams(dp(weatherLeft?ww:nw),-2));
+        view.addView(new View(activity),new LinearLayout.LayoutParams(0,1,1));
+        view.addView(second,new LinearLayout.LayoutParams(dp(weatherLeft?nw:ww),-2));
+        first.setNextFocusRightId(second.getId());second.setNextFocusLeftId(first.getId());
     }
     private int dp(int value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
-    private GradientDrawable background(boolean focus){
-        GradientDrawable d=new GradientDrawable();d.setColor(focus?0xF02A4146:0xC018242D);d.setCornerRadius(dp(16));
-        if(focus)d.setStroke(dp(2),0xFFE1F4EF);return d;
-    }
     private LinearLayout card(){
         LinearLayout v=new LinearLayout(activity);v.setOrientation(LinearLayout.VERTICAL);
-        v.setPadding(dp(18),dp(14),dp(18),dp(14));v.setBackground(background(false));
+        v.setPadding(dp(18),dp(14),dp(18),dp(14));v.setBackground(theme.surface(v,false,dp(16)));
         v.setId(View.generateViewId());v.setFocusable(true);v.setClickable(true);
-        v.setOnFocusChangeListener((view,focus)->view.setBackground(background(focus)));return v;
+        v.setOnFocusChangeListener((view,focus)->{
+            view.setBackground(theme.surface(view,focus,dp(16)));
+            LinearLayout card=(LinearLayout)view;for(int i=0;i<card.getChildCount();i++)if(card.getChildAt(i) instanceof TextView)
+                ((TextView)card.getChildAt(i)).setTextColor(focus?0xFF14201F:Color.WHITE);
+        });return v;
     }
     private TextView line(LinearLayout parent,String value,int size,int color){
         TextView text=new TextView(activity);text.setText(value);text.setTextSize(size);text.setTextColor(color);
@@ -91,7 +108,7 @@ final class HomeWidgets {
     private JSONObject readCache(String key){
         try{return new JSONObject(prefs.getString(key,""));}catch(Exception e){return null;}
     }
-    private boolean enabled(String key){return prefs.getBoolean("widget_"+key,"clock".equals(key));}
+    private boolean enabled(String key){return (layout!=2||"clock".equals(key))&&prefs.getBoolean("widget_"+key,"clock".equals(key));}
     private boolean fahrenheit(){return prefs.getBoolean("widget_fahrenheit",false);}
     private String degrees(String field){return DisplayFormat.degrees(weather.optDouble(field,Double.NaN),fahrenheit());}
     int clockMode(){return prefs.getInt("widget_clock_mode",0);}
@@ -101,11 +118,11 @@ final class HomeWidgets {
                 prefs.edit().putInt("widget_clock_mode",i).apply();d.dismiss();changed.run();
             }).setNegativeButton("Cancel",null).show();
     }
-    boolean clockEnabled(){return enabled("clock");}
+    boolean clockEnabled(){return layout==2||enabled("clock");}
     void linkDock(View dock){
         if(dock==null)return;
         newsCard.setNextFocusDownId(dock.getId());weatherCard.setNextFocusDownId(dock.getId());
-        int up=enabled("news")?newsCard.getId():enabled("weather")?weatherCard.getId():View.NO_ID;
+        int up=weatherLeft&&enabled("weather")?weatherCard.getId():enabled("news")?newsCard.getId():enabled("weather")?weatherCard.getId():View.NO_ID;
         dock.setNextFocusUpId(up);
     }
     void start(){active=true;render();refresh(false);}
@@ -113,13 +130,14 @@ final class HomeWidgets {
     private void invalidateRequests(){feeds.invalidate();searches.invalidate();nextAttempt=0;}
     void destroy(){destroyed=true;stop();worker.shutdownNow();}
     void render(){
+        view.setVisibility(layout==2?View.GONE:View.VISIBLE);
         newsCard.setVisibility(enabled("news")?View.VISIBLE:View.GONE);
         weatherCard.setVisibility(enabled("weather")?View.VISIBLE:View.GONE);
         newsTitle.setText(WidgetData.NEWS_NAMES[source]+"  ·  "+WidgetData.NEWS_DOMAINS[source]);
         if(news==null)headlines.setText(newsFailed?"Headlines unavailable":"Loading headlines…");
         else{
             JSONArray list=news.optJSONArray("items");StringBuilder text=new StringBuilder();
-            if(list!=null)for(int i=0;i<Math.min(2,list.length());i++){
+            if(list!=null)for(int i=0;i<Math.min(layout==1?1:2,list.length());i++){
                 if(i>0)text.append("\n");text.append("• ").append(list.optJSONObject(i).optString("title"));
             }
             headlines.setText(text.length()==0?"A quiet moment - no matching good-news stories right now.":text);
@@ -131,7 +149,7 @@ final class HomeWidgets {
             conditions.setText(town.isEmpty()?"Choose a town to get started":weatherFailed?"Weather unavailable":"Loading weather…");
         }else{
             temperature.setText(degrees("temperature")+"  ·  "+weather.optString("condition"));
-            temperature.setTextSize(24);
+            temperature.setTextSize(layout==1?20:24);
             conditions.setText("High "+degrees("high")+"  /  Low "+degrees("low")+"");
         }
         weatherStatus.setText("Open-Meteo  ·  "+status(weather,weatherFailed));
@@ -184,10 +202,20 @@ final class HomeWidgets {
     }
     void options(Runnable changed){
         new AlertDialog.Builder(activity).setTitle("Widgets").setItems(
-            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location","Clear feed data and turn feeds off","Forget weather town","Temperature units"},
+            new String[]{"Show or hide widgets","News edition","Read news summaries","Refresh weather and news","About these widgets","Weather location","Clear feed data and turn feeds off","Forget weather town","Temperature units","Card layout","Card positions"},
             (dialog,index)->{
+                if(index==9)new AlertDialog.Builder(activity).setTitle("Card layout")
+                    .setSingleChoiceItems(new String[]{"Standard cards","Compact cards","Clock only (feeds paused)"},layout,(d,i)->{
+                        layout=i;prefs.edit().putInt("widget_layout",i).apply();invalidateRequests();
+                        arrange();render();changed.run();d.dismiss();refresh(false);
+                    }).setNegativeButton("Cancel",null).show();
+                if(index==10)new AlertDialog.Builder(activity).setTitle("Card positions")
+                    .setSingleChoiceItems(new String[]{"News left, weather right","Weather left, news right"},weatherLeft?1:0,(d,i)->{
+                        weatherLeft=i==1;prefs.edit().putBoolean("widget_weather_left",weatherLeft).apply();
+                        arrange();changed.run();d.dismiss();
+                    }).setNegativeButton("Cancel",null).show();
                 if(index==0){
-                    boolean[] selected={enabled("clock"),enabled("weather"),enabled("news")};
+                    boolean[] selected={prefs.getBoolean("widget_clock",true),prefs.getBoolean("widget_weather",false),prefs.getBoolean("widget_news",false)};
                     new AlertDialog.Builder(activity).setTitle("Show on Home")
                         .setMultiChoiceItems(new String[]{"Clock and date (offline)","Weather (contacts Open-Meteo)","News (contacts selected publisher)"},selected,(d,i,value)->selected[i]=value)
                         .setPositiveButton("Save",(d,i)->{
@@ -301,19 +329,20 @@ final class HomeWidgets {
             }).setNegativeButton("Close",null).show();
     }
     JSONObject state() throws JSONException{
-        return new JSONObject().put("clock",enabled("clock")).put("weather",enabled("weather"))
-            .put("news",enabled("news")).put("source",source).put("fahrenheit",fahrenheit()).put("clockMode",clockMode())
+        return new JSONObject().put("clock",prefs.getBoolean("widget_clock",true)).put("weather",prefs.getBoolean("widget_weather",false))
+            .put("news",prefs.getBoolean("widget_news",false)).put("layout",layout).put("weatherLeft",weatherLeft).put("source",source).put("fahrenheit",fahrenheit()).put("clockMode",clockMode())
             .put("town",town).put("latitude",latitude).put("longitude",longitude);
     }
     static void validate(JSONObject state) throws JSONException {SettingsBackup.validateWidgets(state);}
     void restore(JSONObject state) throws JSONException {
         validate(state);invalidateRequests();
         source=state.getInt("source");news=null;weather=null;nextAttempt=0;
+        layout=state.optInt("layout",0);weatherLeft=state.optBoolean("weatherLeft",false);
         town=state.getString("town");latitude=state.getDouble("latitude");longitude=state.getDouble("longitude");
-        prefs.edit().putBoolean("widget_clock",state.getBoolean("clock")).putBoolean("widget_weather",state.getBoolean("weather"))
+        prefs.edit().putInt("widget_layout",layout).putBoolean("widget_weather_left",weatherLeft).putBoolean("widget_clock",state.getBoolean("clock")).putBoolean("widget_weather",state.getBoolean("weather"))
             .putBoolean("widget_news",state.getBoolean("news")).putBoolean("widget_fahrenheit",state.optBoolean("fahrenheit",false)).putInt("widget_clock_mode",state.optInt("clockMode",0)).putInt("widget_news_source",source)
             .putString("widget_town",town).putString("widget_lat",Double.toString(latitude)).putString("widget_lon",Double.toString(longitude))
             .remove("widget_news_cache").remove("widget_weather_cache").apply();
-        render();refresh(false);
+        arrange();render();refresh(false);
     }
 }

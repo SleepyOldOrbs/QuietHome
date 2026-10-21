@@ -24,6 +24,12 @@ public final class SettingsBackupTest {
         SettingsBackup.validate(base().put("widgets",widgets()).put("gallery",gallery())); // 1.4 fields only.
         SettingsBackup.validate(base().put("widgets",widgets().put("fahrenheit",true).put("clockMode",2))
             .put("gallery",gallery().put("interval",0).put("fit",true)));
+        for(int theme=0;theme<3;theme++)for(int layout=0;layout<3;layout++)
+            SettingsBackup.validate(base().put("theme",theme).put("widgets",widgets().put("layout",layout).put("weatherLeft",true)));
+        reject(base().put("theme",3));reject(base().put("theme","0"));reject(base().put("theme",1.5));
+        reject(base().put("widgets",widgets().put("layout",3)));
+        reject(base().put("widgets",widgets().put("layout","1")));
+        reject(base().put("widgets",widgets().put("weatherLeft",1)));
         reject(base().put("schema","1"));reject(base().put("schema",1.5));reject(base().put("schema",2));
         reject(base().put("compact","false"));reject(base().put("favourites",new JSONArray().put("")));
         reject(base().put("widgets",JSONObject.NULL));reject(base().put("gallery","ignored before"));

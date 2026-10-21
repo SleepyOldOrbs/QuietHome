@@ -45,3 +45,15 @@ The signed private build was installed in place after saving the previous APK an
 An in-place rollback to the prior source, followed by reapplication of 1.6, also passed on that TV. Exported dock, widget and gallery settings were verified after both operations; no uninstall or data clear was used.
 
 These are ADB-driven checks. They do not establish compatibility with every physical remote, streaming service, HDMI source, Bluetooth accessory or casting setup. Private wallpapers, settings and device screenshots are excluded from this repository.
+
+## 1.7 preview validation
+
+On 21 October 2026, the host suite, full public build, Android settings/parser suite and live provider checks passed on the same authorised Android 12 TV. New tests cover 10,000 mailbox offers with cancellation/resume, all nine valid theme/layout combinations, and rejection of invalid theme/layout/position field types and ranges. Tests validate behaviour and backup compatibility; they do not substitute for UI measurements.
+
+TV screenshots and ADB remote input exercised Frosted Glass, Midnight and Gallery; standard, compact and clock-only widgets; swapped card positions; visible focus; news/weather dialogs; and clock-only persistence across process recreation. Exported clock-only settings retained the underlying feed choices, and returning to compact restored the cards. Ten rapid Right presses moved exactly ten gallery positions, ten Left presses returned to the original image, and Art mode kept every overlay hidden.
+
+A selected app was temporarily disabled to exercise catalogue updates, then re-enabled while Home was paused. Its tile disappeared and returned on resume; the saved favourite order was preserved. No app was uninstalled or data-cleared.
+
+The private update used the original signing certificate and retained all 122 wallpaper files byte for byte. An in-place rollback to 1.6 source and reapplication of 1.7 passed, with settings exported and compared after each operation. A recovery-script export timing issue was caught and corrected: verification now requires a newly created backup instead of accepting an older file.
+
+See [performance](PERFORMANCE.md) for the startup, image-change, rendering and memory measurements, including regressions and methodological limits. This release adds no permissions, network providers or system-package changes. Fresh physical playback/audio/remote confirmation remains separate from these ADB checks.

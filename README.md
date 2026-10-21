@@ -16,6 +16,8 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **Artwork mode.** Hide the interface immediately with Art mode, or after 30 seconds, one minute or two minutes. Left/Right browse the pictures while the interface stays hidden. Up, Down, OK or Back bring the controls back without launching an app.
 - **Remembered focus.** Return to the app you were selecting, including after visiting a widget.
 - **Clock and date.** Follow the TV's local time without a network request; choose system, 12-hour or 24-hour display.
+- **Three themes.** Frosted Glass uses a small, pre-blurred copy of your wallpaper; Midnight has dark blue panels; Gallery uses warm neutral panels. Choose one in **Home options → Appearance**.
+- **Widget layouts.** Choose standard, compact or clock-only cards and swap the news/weather positions in **Home options → Widgets**. Clock-only pauses feeds while preserving their settings.
 - **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius or Fahrenheit. Unit changes work offline.
 - **Optional news.** Choose Good news from Good News Network, or BBC UK, World or Technology. Good news excludes common distressing topics using a conservative word filter; it cannot guarantee editorial tone. Read publisher headlines and short summaries with the remote.
 - **Local settings backups.** Save and restore the dock, gallery state, artwork delay and widget preferences.
@@ -25,7 +27,7 @@ The app is Java and Android framework code: no Gradle dependencies, WebView, ana
 
 ## Current status
 
-Current source: **1.6-preview.1**, adding immediate Art mode, remote picture browsing and an optional filtered good-news feed to the [eight documented improvement loops](docs/IMPROVEMENT-LOOPS.md). Host tests and Android parser/settings tests, including live feeds, have passed. See [validation](docs/TESTING.md) for the checks and their limits.
+Current source: **1.7-preview.1**, adding themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 

@@ -27,6 +27,8 @@ final class SettingsBackup {
         bool(state,"clock");bool(state,"weather");bool(state,"news");
         long source=integer(state,"source");if(source<0||source>=WidgetData.NEWS_NAMES.length)throw new JSONException("Unknown news edition");
         string(state.get("town"),120);coordinate(state,"latitude",90);coordinate(state,"longitude",180);
+        if(state.has("layout")){long layout=integer(state,"layout");if(layout<0||layout>2)throw new JSONException("Invalid widget layout");}
+        if(state.has("weatherLeft"))bool(state,"weatherLeft");
         if(state.has("fahrenheit"))bool(state,"fahrenheit");
         if(state.has("clockMode")){
             long mode=integer(state,"clockMode");if(mode<0||mode>2)throw new JSONException("Invalid clock mode");
@@ -34,6 +36,7 @@ final class SettingsBackup {
     }
     static void validate(JSONObject state) throws JSONException {
         if(integer(state,"schema")!=1)throw new JSONException("Unknown schema");
+        if(state.has("theme")){long theme=integer(state,"theme");if(theme<0||theme>2)throw new JSONException("Invalid theme");}
         bool(state,"compact");JSONArray favourites=state.getJSONArray("favourites");
         if(favourites.length()>100)throw new JSONException("Too many favourites");
         for(int i=0;i<favourites.length();i++){

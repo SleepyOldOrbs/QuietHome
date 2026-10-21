@@ -27,6 +27,8 @@ Good news strips feed HTML without loading embedded images and excludes common d
 
 Weather and news default to off; existing explicit on/off choices are retained. Weather also requires a chosen town. Each widget can be hidden independently through Home options.
 
+Clock-only layout suppresses both feeds and their scheduled requests without forgetting the selected town, news edition or individual visibility preferences. Returning to standard or compact layout resumes the enabled feeds. A request already in progress may complete, but an obsolete response is discarded.
+
 Successful data is refreshed about every 30 minutes while Home is active. Failures retry after five minutes. Manual refresh and town searches make additional requests. A request already running when Home is paused may finish, but its result is discarded. Subsequent feed requests and refresh timers do not start while paused.
 
 Last successful results are stored in the app's preferences and survive process restarts. Ages are shown on screen. Failed or more-than-one-hour-old results are labelled cached. Modelled weather is not a reading from a sensor at the TV.
@@ -38,6 +40,8 @@ News summaries are the publisher's feed descriptions, not generated summaries.
 ## Local data and backups
 
 Local preferences include favourites, tile size, selected app, wallpaper shuffle state, artwork delay, widget visibility, news edition, chosen town/coordinates and cached feed data.
+
+Theme, widget layout and card positions are also stored locally and included in settings exports. Frosted Glass is generated on the TV from bundled wallpaper pixels; it adds no network endpoint or permission. Image decoding uses a worker and a three-entry cache with a 14 MiB retained-cache budget; displayed images and temporary decoding allocations are additional memory. Cached frost images have a maximum dimension of 160 pixels. There is no continuous blur or wallpaper upload.
 
 User-triggered settings exports include configuration and gallery state, but not cached feed bodies, wallpaper pixels or credentials belonging to other apps. Android's `allowBackup` flag is enabled, so OS-managed app backup may also apply according to the device's backup configuration.
 

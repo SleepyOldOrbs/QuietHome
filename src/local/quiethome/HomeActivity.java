@@ -21,7 +21,13 @@ import org.json.*;
 /** Remote-first home. Optional public-feed widgets; no services or analytics. */
 public final class HomeActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final ExecutorService images = Executors.newSingleThreadExecutor();
+    private final ExecutorService catalogWorker = Executors.newSingleThreadExecutor();
+    private WallpaperLoader imageLoader;
+    private WallpaperLoader.Frame currentFrame;
+    private String currentImage;
+    private HomeTheme theme;
+    private boolean catalogBusy;
+    private long catalogGeneration;
     private ImageView background;
     private TextView clock, scene;
     private HomeWidgets widgets;
@@ -40,18 +46,37 @@ public final class HomeActivity extends Activity {
     private String[] wallpapers;
     private WallpaperDeck wallpaperDeck;
     private boolean active, loading, catalogDirty;
-    private long imageGeneration;
-    private final Runnable refreshCatalog=()->{
-        if(!active||!catalogDirty||!hasWindowFocus())return;
-        View previous=getCurrentFocus();
-        boolean outsideDock=previous!=null && previous.getParent()!=dock;
-        scanApps();catalogDirty=false;rebuildDock();
-        if(outsideDock&&previous.isAttachedToWindow())previous.requestFocus();
-    };
+    private final Runnable refreshCatalog=this::refreshApps;
+    private void refreshApps(){
+        if(!active||!catalogDirty||catalogBusy||!hasWindowFocus())return;
+        catalogBusy=true;catalogDirty=false;
+        final long ticket=catalogGeneration;
+        final HashMap<String,App> previous=new HashMap<>();for(App app:apps)previous.put(app.pkg,app);
+        catalogWorker.execute(()->{
+            ArrayList<App> result=null;
+            try{result=readApps(previous);}catch(RuntimeException e){android.util.Log.w("QuietHome","App refresh unavailable",e);}
+            final ArrayList<App> found=result;
+            handler.post(()->{
+                catalogBusy=false;if(isDestroyed())return;
+                if(ticket!=catalogGeneration||!active){catalogDirty=true;if(active)handler.post(refreshCatalog);return;}
+                if(!hasWindowFocus()){catalogDirty=true;return;}
+                if(found!=null){
+                    boolean changed=found.size()!=apps.size();
+                    if(!changed)for(int i=0;i<found.size();i++)if(found.get(i)!=apps.get(i)){changed=true;break;}
+                    if(changed){
+                        View focus=getCurrentFocus();boolean outside=focus!=null&&focus.getParent()!=dock;
+                        apps.clear();apps.addAll(found);rebuildDock();
+                        if(outside&&focus.isAttachedToWindow())focus.requestFocus();
+                    }
+                }
+                if(catalogDirty)handler.post(refreshCatalog);
+            });
+        });
+    }
     private final BroadcastReceiver packageChanges=new BroadcastReceiver(){
         @Override public void onReceive(Context context,Intent intent){
             if(Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())&&intent.getBooleanExtra(Intent.EXTRA_REPLACING,false))return;
-            catalogDirty=true;handler.removeCallbacks(refreshCatalog);handler.postDelayed(refreshCatalog,250);
+            catalogGeneration++;catalogDirty=true;handler.removeCallbacks(refreshCatalog);handler.postDelayed(refreshCatalog,250);
         }
     };
     private static final String DEFAULTS = "com.google.android.youtube.tv,com.sony.dtv.tvx,org.jellyfin.androidtv,com.netflix.ninja";
@@ -60,6 +85,8 @@ public final class HomeActivity extends Activity {
     };
     private static final class App {
         String name, pkg;
+        long stamp;
+        ResolveInfo info;
         Intent intent;
         Drawable icon;
     }
@@ -102,6 +129,16 @@ public final class HomeActivity extends Activity {
             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         long interval=getPreferences(0).getLong("wallpaper_interval",60000);
         rotation.setInterval(RotationTimer.supported(interval)?interval:60000,SystemClock.elapsedRealtime());
+        theme=new HomeTheme(getPreferences(0).getInt("theme",1));
+        imageLoader=new WallpaperLoader(getAssets(),handler,(name,frame,elapsed,cached)->{
+            loading=false;if(frame==null){toast("That picture could not be loaded.");return;}
+            currentFrame=frame;currentImage=name;background.setImageBitmap(frame.image);
+            theme.wallpaper(frame.frost,fitWallpaper);
+            scene.setText(imageCaption(name));
+            persistGallery();
+            android.util.Log.i("QuietHome","Wallpaper: "+name);
+            android.util.Log.i("QuietHomePerf","image_ms="+elapsed+" cached="+cached);
+        });
         scanApps();
         String stored = getPreferences(0).getString("favourites", DEFAULTS);
         if(!stored.isEmpty())favourites.addAll(Arrays.asList(stored.split(",")));
@@ -138,28 +175,36 @@ public final class HomeActivity extends Activity {
         loadScene();
     }
     private void scanApps() {
-        apps.clear();
-        PackageManager pm=getPackageManager();
-        List<ResolveInfo> results=pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
+        HashMap<String,App> prior=new HashMap<>();for(App app:apps)prior.put(app.pkg,app);
+        ArrayList<App> found=readApps(prior);apps.clear();apps.addAll(found);
+    }
+    private ArrayList<App> readApps(Map<String,App> previous){
+        PackageManager pm=getPackageManager();ArrayList<App> found=new ArrayList<>();
+        List<ResolveInfo> results=pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER),0);
         HashSet<String> seen=new HashSet<>();
-        for(ResolveInfo r:results) {
-            String pkg=r.activityInfo.packageName;
-            if(pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
-            App a=new App(); a.pkg=pkg; a.name=r.loadLabel(pm).toString();
-            if(pkg.equals("com.sony.dtv.tvx")) a.name="TV";
-            if(pkg.equals("org.jellyfin.androidtv")) a.name="Jellyfin";
-            a.intent=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-                .setComponent(new ComponentName(pkg,r.activityInfo.name))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            a.icon=r.loadIcon(pm); apps.add(a);
+        for(ResolveInfo info:results){
+            String pkg=info.activityInfo.packageName;if(pkg.equals(getPackageName())||!seen.add(pkg))continue;
+            long stamp=0;try{stamp=pm.getPackageInfo(pkg,0).lastUpdateTime;}catch(PackageManager.NameNotFoundException ignored){}
+            App old=previous.get(pkg);
+            if(old!=null&&old.stamp==stamp&&old.info.activityInfo.name.equals(info.activityInfo.name)){found.add(old);continue;}
+            App app=new App();app.pkg=pkg;app.stamp=stamp;app.info=info;app.name=info.loadLabel(pm).toString();
+            if(pkg.equals("com.sony.dtv.tvx"))app.name="TV";
+            if(pkg.equals("org.jellyfin.androidtv"))app.name="Jellyfin";
+            app.intent=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                .setComponent(new ComponentName(pkg,info.activityInfo.name))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            found.add(app);
         }
-        Collections.sort(apps,(a,b)->a.name.compareToIgnoreCase(b.name));
+        Collections.sort(found,(a,b)->a.name.compareToIgnoreCase(b.name));return found;
     }
     private App find(String pkg) { for(App a:apps) if(a.pkg.equals(pkg)) return a; return null; }
     private void build() {
+        if(widgets!=null)widgets.destroy();
+        artworkVisible=false;
         FrameLayout root=new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16,26,32));
         background=new ImageView(this);applyWallpaperScale();
+        if(currentFrame!=null)background.setImageBitmap(currentFrame.image);
         root.addView(background,new FrameLayout.LayoutParams(-1,-1));
         View shade=new View(this);
         shadeView=shade;
@@ -174,19 +219,19 @@ public final class HomeActivity extends Activity {
         clock=text("",22,Color.WHITE); clock.setGravity(Gravity.RIGHT); header.addView(clock);
         FrameLayout.LayoutParams hp=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);
         hp.setMargins(dp(48),dp(30),dp(48),0); root.addView(header,hp);
-        widgets=new HomeWidgets(this,handler);
+        widgets=new HomeWidgets(this,handler,theme);
         FrameLayout.LayoutParams wp=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);
         wp.setMargins(dp(48),dp(96),dp(48),0);root.addView(widgets.view,wp);
         clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
 
         LinearLayout lower=new LinearLayout(this); lower.setOrientation(LinearLayout.VERTICAL);
         lowerView=lower;
-        scene=text(wallpapers.length==0?"Quiet Home":"A moment outside",15,0xFFE2ECE6);
+        scene=text(currentImage!=null?imageCaption(currentImage):wallpapers.length==0?"Quiet Home":"A moment outside",15,0xFFE2ECE6);
         scene.setPadding(dp(4),0,0,dp(18)); lower.addView(scene);
         HorizontalScrollView scroll=new HorizontalScrollView(this);
         scroll.setHorizontalScrollBarEnabled(false); scroll.setClipChildren(false);
         scroll.setClipToPadding(false); scroll.setPadding(dp(10),dp(10),dp(10),dp(10));
-        scroll.setBackground(rounded(0x90212B32,22));
+        scroll.setBackground(theme.surface(scroll,false,dp(22)));
         dock=new LinearLayout(this); dock.setGravity(Gravity.CENTER_VERTICAL);
         dock.setClipChildren(false); dock.setClipToPadding(false);
         scroll.addView(dock); lower.addView(scroll,new LinearLayout.LayoutParams(-1,dp(132)));
@@ -206,14 +251,16 @@ public final class HomeActivity extends Activity {
         lp.setMargins(dp(48),0,dp(48),dp(34)); root.addView(lower,lp);
         setContentView(root);
         rebuildDock();
+        if(currentFrame!=null)theme.wallpaper(currentFrame.frost,fitWallpaper);
+        if(active)widgets.start();
     }
     private View addTool(LinearLayout parent,String label,Runnable action) {
         TextView b=text(label,14,0xFFE2E7EB); b.setGravity(Gravity.CENTER);
         b.setId(View.generateViewId());
         b.setPadding(dp(12),0,dp(12),0); b.setFocusable(true); b.setClickable(true);
-        b.setBackground(rounded(0x60232C34,12));
+        b.setBackground(theme.surface(b,false,dp(12)));
         b.setOnFocusChangeListener((v,f)->{
-            b.setBackground(rounded(f?0xFFF0F5F1:0x60232C34,12));
+            b.setBackground(theme.surface(b,f,dp(12)));
             b.setTextColor(f?0xFF13201E:0xFFE2E7EB);
         });
         b.setOnClickListener(v->action.run());
@@ -232,7 +279,8 @@ public final class HomeActivity extends Activity {
             card.setTag(pkg); card.setId(View.generateViewId());
             card.setNextFocusDownId(allAppsButton.getId());
             widgets.linkDock(card);
-            card.setBackground(rounded(0xD9212933,15));
+            card.setBackground(theme.surface(card,false,dp(15)));
+            if(a.icon==null)a.icon=a.info.loadIcon(getPackageManager());
             ImageView icon=new ImageView(this); icon.setImageDrawable(a.icon);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(icon,new LinearLayout.LayoutParams(dp(compact?48:58),dp(compact?48:58)));
@@ -245,9 +293,7 @@ public final class HomeActivity extends Activity {
                     widgets.linkDock(card);
                     getPreferences(0).edit().putString("last_dock_package",pkg).apply();
                 }
-                GradientDrawable bg=rounded(f?0xFFF1F5F2:0xD9212933,15);
-                if(f) bg.setStroke(dp(2),0xFFFFFFFF);
-                card.setBackground(bg); label.setTextColor(f?0xFF14201F:Color.WHITE);
+                card.setBackground(theme.surface(card,f,dp(15))); label.setTextColor(f?0xFF14201F:Color.WHITE);
                 card.animate().scaleX(f?1.035f:1).scaleY(f?1.035f:1).setDuration(120).start();
             });
             card.setOnClickListener(v->open(a));
@@ -306,7 +352,7 @@ public final class HomeActivity extends Activity {
     }
     private void homeOptions() {
         new AlertDialog.Builder(this).setTitle("Home options").setItems(
-            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets","Clock format","Wallpaper settings"},(d,i)->{
+            new String[]{"Arrange dock","Tile size","Save backup","Restore backup","Artwork mode","Widgets","Clock format","Wallpaper settings","Appearance"},(d,i)->{
                 if(i==0)arrangeDock();
                 if(i==1)new AlertDialog.Builder(this).setTitle("Tile size")
                     .setSingleChoiceItems(new String[]{"Compact","Standard"},compact?0:1,(dialog,index)->{
@@ -319,12 +365,19 @@ public final class HomeActivity extends Activity {
                 if(i==3)chooseBackup();
                 if(i==4)artworkOptions();
                 if(i==7)wallpaperOptions();
+                if(i==8)appearanceOptions();
                 if(i==6)widgets.clockOptions(()->{handler.removeCallbacks(tick);if(active)handler.post(tick);});
                 if(i==5)widgets.options(()->{
                     clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
                     rebuildDock();
                 });
             }).setNegativeButton("Close",null).show();
+    }
+    private void appearanceOptions(){
+        new AlertDialog.Builder(this).setTitle("Appearance").setSingleChoiceItems(HomeTheme.NAMES,theme.mode,(dialog,index)->{
+            getPreferences(0).edit().putInt("theme",index).apply();theme=new HomeTheme(index);
+            dialog.dismiss();build();handler.removeCallbacks(tick);if(active)handler.post(tick);armArtwork();
+        }).setNegativeButton("Cancel",null).show();
     }
     private void arrangeDock() {
         String[] labels=new String[favourites.size()];
@@ -372,6 +425,7 @@ public final class HomeActivity extends Activity {
     private JSONObject stateJson() throws JSONException {
         JSONObject state=new JSONObject();
         state.put("schema",1);state.put("favourites",new JSONArray(favourites));state.put("compact",compact);
+        if(theme!=null)state.put("theme",theme.mode);
         if(widgets!=null)state.put("widgets",widgets.state());
         if(wallpaperDeck!=null){
             JSONObject gallery=new JSONObject();
@@ -469,52 +523,31 @@ public final class HomeActivity extends Activity {
                 fitWallpaper=restoredFit;getPreferences(0).edit().putBoolean("wallpaper_fit",fitWallpaper).apply();applyWallpaperScale();
                 getPreferences(0).edit().putLong("wallpaper_interval",restoredInterval).apply();
                 getPreferences(0).edit().putLong("artwork_delay",artworkDelay).apply();
-                imageGeneration++;loading=false;persistGallery();loadScene();
+                imageLoader.cancel();loading=false;persistGallery();loadScene();
             }
             if(restoredWidgets!=null){
                 widgets.restore(restoredWidgets);
                 clock.setVisibility(widgets.clockEnabled()?View.VISIBLE:View.GONE);
             }
-            persist();rebuildDock();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
+            int restoredTheme=state.optInt("theme",1);getPreferences(0).edit().putInt("theme",restoredTheme).apply();
+            theme=new HomeTheme(restoredTheme);persist();build();armArtwork();handler.removeCallbacks(tick);if(active)handler.post(tick);toast("Home settings restored.");
         }catch(Exception e){toast(changesStarted?"Restore failed after saving a recovery backup. Use Restore backup to recover.":"This backup could not be restored. Your settings are unchanged.");}
     }
     private void nextScene() {
-        if(wallpapers.length==0||loading)return;
-        wallpaperDeck.next(); loadScene();
+        if(wallpapers.length==0)return;
+        wallpaperDeck.next();loadScene();
     }
+    private String imageCaption(String name){return "Your collection  \u00b7  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');}
     private void browseScene(int direction) {
-        if(wallpapers.length==0||loading)return;
-        wallpaperDeck.browse(direction); loadScene();
+        if(wallpapers.length==0)return;
+        wallpaperDeck.browse(direction);loadScene();
     }
     private void loadScene() {
         rotation.restart(SystemClock.elapsedRealtime());
-        if(wallpapers.length==0||loading)return;
+        if(wallpapers.length==0)return;
         loading=true;
-        final String name=wallpaperDeck.current();
-        final long request=++imageGeneration;
-        images.execute(()->{
-            Bitmap decoded=null;
-            try{
-                BitmapFactory.Options opt=new BitmapFactory.Options();opt.inJustDecodeBounds=true;
-                try(InputStream in=getAssets().open("wallpapers/"+name)){BitmapFactory.decodeStream(in,null,opt);}
-                opt.inSampleSize=1;
-                while(opt.outWidth/opt.inSampleSize>2560||opt.outHeight/opt.inSampleSize>1920)opt.inSampleSize*=2;
-                opt.inJustDecodeBounds=false;opt.inPreferredConfig=Bitmap.Config.RGB_565;
-                try(InputStream in=getAssets().open("wallpapers/"+name)){decoded=BitmapFactory.decodeStream(in,null,opt);}
-            }catch(IOException|RuntimeException e){android.util.Log.w("QuietHome","Wallpaper unavailable",e);}
-            final Bitmap result=decoded;
-            handler.post(()->{
-                if(isDestroyed()||request!=imageGeneration){if(result!=null)result.recycle();return;}
-                loading=false;
-                if(result!=null){
-                    background.setImageBitmap(result);
-                    String caption="Your collection  \u00b7  "+name.replaceFirst("^user-\\d+-","").replaceFirst("\\.[^.]+$","").replace('_',' ');
-                    scene.setText(caption);
-                    persistGallery();
-                    android.util.Log.i("QuietHome","Wallpaper: "+name);
-                }
-            });
-        });
+        List<String> order=wallpaperDeck.order();int position=wallpaperDeck.position(),size=order.size();
+        imageLoader.request(wallpaperDeck.current(),order.get((position+size-1)%size),order.get((position+1)%size));
     }
     private ArrayList<String> jsonStrings(JSONArray array) throws JSONException {
         if(array.length()>1000)throw new JSONException("Too many wallpapers");
@@ -529,7 +562,8 @@ public final class HomeActivity extends Activity {
             .putInt("wallpaper_position",wallpaperDeck.position())
             .putString("wallpaper_current",wallpaperDeck.current()).apply();
     }
-    private void applyWallpaperScale(){background.setScaleType(fitWallpaper?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);}
+    private void applyWallpaperScale(){background.setScaleType(fitWallpaper?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);
+        if(theme!=null&&currentFrame!=null)theme.wallpaper(currentFrame.frost,fitWallpaper);}
     private void wallpaperOptions(){
         new AlertDialog.Builder(this).setTitle("Wallpaper settings").setItems(new String[]{"Timing","Picture framing"},(d,i)->{
             if(i==0)wallpaperTiming();
@@ -646,17 +680,22 @@ public final class HomeActivity extends Activity {
         rotation.resume(SystemClock.elapsedRealtime());
         setArtworkVisible(false);handler.removeCallbacks(tick);handler.post(tick);
         widgets.start();catalogDirty=true;handler.post(refreshCatalog);
+        if(wallpaperDeck.current()!=null&&!wallpaperDeck.current().equals(currentImage))loadScene();
     }
     @Override protected void onPause(){
         rotation.pause(SystemClock.elapsedRealtime());
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
-        widgets.stop();handler.removeCallbacks(refreshCatalog);
+        widgets.stop();handler.removeCallbacks(refreshCatalog);catalogGeneration++;
+        imageLoader.cancel();loading=false;
         persistGallery();super.onPause();
     }
     @Override protected void onDestroy(){
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         widgets.destroy();
-        images.shutdownNow();super.onDestroy();
+        imageLoader.destroy();catalogWorker.shutdownNow();super.onDestroy();
+    }
+    @Override public void onTrimMemory(int level){
+        super.onTrimMemory(level);if(level>=TRIM_MEMORY_RUNNING_LOW&&imageLoader!=null)imageLoader.trim();
     }
     @Override public void onBackPressed(){if(dock.getChildCount()>0&&dock.getChildAt(0).isFocusable())dock.getChildAt(0).requestFocus();else allAppsButton.requestFocus();}
     @Override public boolean onKeyDown(int key,KeyEvent event){

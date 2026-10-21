@@ -58,6 +58,8 @@ Use **Home options → Save backup**. To restore, use **Home options → Restore
 
 New optional fields cover temperature units, clock format, wallpaper timing and framing. Older widget/gallery snapshots use Celsius, system clock format, one-minute rotation and fill framing for fields they do not contain. Missing whole widget/gallery sections leave that part of the current configuration in place.
 
+Version 1.7 adds theme, widget layout and card positions. A backup without a theme uses Midnight; an older widget section without layout/positions uses standard cards with news on the left. Saved visibility choices survive clock-only mode. Unknown or incorrectly typed values are rejected before preferences are changed.
+
 On typical devices the files are under:
 
 ```text
