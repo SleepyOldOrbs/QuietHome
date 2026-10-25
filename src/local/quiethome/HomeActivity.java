@@ -36,6 +36,7 @@ public final class HomeActivity extends Activity {
     private ImageView background;
     private TextView clock, scene;
     private HomeWidgets widgets;
+    private PowerControls powerControls;
     private LinearLayout dock;
     private HorizontalScrollView dockScroll;
     private View allAppsButton;
@@ -129,6 +130,7 @@ public final class HomeActivity extends Activity {
     }
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        powerControls=new PowerControls(this);
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
@@ -271,9 +273,10 @@ public final class HomeActivity extends Activity {
         addTool(tools,"Art mode",()->setArtworkVisible(true));
         addTool(tools,"Home options",()->homeOptions());
         addTool(tools,"Settings",()->launchSettings());
-        TextView hint=text("Hold OK to arrange",11,0xFFC0C8CE);
-        hint.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        tools.addView(hint,new LinearLayout.LayoutParams(0,dp(40),1));
+        tools.addView(new View(this),new LinearLayout.LayoutParams(0,dp(40),1));
+        addTool(tools,"Power",()->powerControls.show(false));
+        View restart=addTool(tools,"Restart",()->powerControls.show(true));
+        ((LinearLayout.LayoutParams)restart.getLayoutParams()).rightMargin=0;
         lower.addView(tools);
         FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);
         lp.setMargins(dp(48),0,dp(48),dp(34)); root.addView(lower,lp);
@@ -782,7 +785,7 @@ public final class HomeActivity extends Activity {
         unregisterReceiver(packageChanges);handler.removeCallbacks(refreshCatalog);super.onStop();
     }
     @Override protected void onResume(){
-        super.onResume();active=true;swallowedKey=-1;swallowedTouch=false;
+        super.onResume();active=true;powerControls.setActive(true);swallowedKey=-1;swallowedTouch=false;
         rotation.resume(SystemClock.elapsedRealtime());
         setArtworkVisible(false);handler.removeCallbacks(tick);handler.post(tick);
         widgets.start();catalogDirty=true;handler.post(refreshCatalog);
@@ -790,13 +793,14 @@ public final class HomeActivity extends Activity {
     }
     @Override protected void onPause(){
         rotation.pause(SystemClock.elapsedRealtime());
-        active=false;syncVideo();handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
+        active=false;powerControls.setActive(false);syncVideo();handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         widgets.stop();handler.removeCallbacks(refreshCatalog);catalogGeneration++;
         imageLoader.cancel();loading=false;
         persistGallery();super.onPause();
     }
     @Override protected void onDestroy(){
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
+        if(powerControls!=null)powerControls.close();
         if(videoBackground!=null)videoBackground.close();
         widgets.destroy();
         imageLoader.destroy();catalogWorker.shutdownNow();super.onDestroy();

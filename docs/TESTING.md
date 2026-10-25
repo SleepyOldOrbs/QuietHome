@@ -149,3 +149,19 @@ Validation on 21 October 2026:
 - An initial build was installed in place on the authorised Sony TV and its Summertime screenshot inspected. TV control stopped when another app was opened. The final rounded-mask/Lush refinements and this version's physical-TV rollback/reapply remain pending a free TV; emulator success is not represented as TV validation.
 
 There are no settings-schema, permission, provider or system-package changes. Prior APK/settings and a version-specific original-key recovery package are preserved privately. Exact prompts are in [GARLAND-PROMPTS.md](../assets/themes/GARLAND-PROMPTS.md).
+
+## 1.12 preview 1 Power and Restart
+
+Adds separate bottom-right Power and Restart buttons for compatible Sony TVs. Each requires confirmation, initially focused on Cancel. The existing INTERNET permission is unchanged; a network-security configuration permits HTTP only to the TV's loopback address for Sony's local service.
+
+Validation on 25 October 2026:
+
+- All eight host test suites pass, including control-password length/character bounds and header-injection rejection. Android settings/parser regression tests and live feed checks pass on the Android TV API 31 emulator. Public and original-key private APKs build and verify.
+- The update was installed in place on the authorised Sony BRAVIA running Android 12. Inspected TV screenshots show the bottom-right buttons without overlapping the other tools. Confirmation-dialog Cancel focus was verified on the TV.
+- ADB-injected remote Left/Right reached Power and Restart, OK opened the confirmation, and OK on the initially focused Cancel left the TV awake. Remote-only Art mode entry hid both buttons; another OK restored them. Final exports retained dock order, tile size, theme, appearance, widgets and video configuration; gallery progress changed normally as pictures rotated.
+- The Power button put the actual TV into standby, confirmed by Android's asleep state. An ADB wake restored it. The Restart button caused an actual reboot, verified by a changed boot ID and completed boot; QuietHome returned automatically. Saved control credentials survived the update and restart.
+- Normal code pairing was investigated and rejected for this implementation because this firmware cancels its pairing activity when QuietHome opens. With explicit owner approval, Sony authentication was changed from Normal to Normal and Pre-Shared Key and a random key configured. Simple IP control, Control4 and Remote start were unchanged. No manufacturer packages were enabled, disabled or removed.
+- Recovery restored the previous launcher implementation and Sony Normal authentication, then reapplied the update and Normal and Pre-Shared Key. APK hashes and Sony's displayed mode were verified in both directions. Sony retains the inactive key in Normal mode; this is documented rather than represented as restoration of the original empty password field. No uninstall or data clear was used.
+- The exact pre-update APK is preserved privately. The compatible rollback changes only its manifest version code and regenerated signing metadata; its code, resources and assets match the saved APK. All 122 private wallpapers are byte-identical in the update. Settings exports exclude the control key, which is stored in app-private backup-excluded storage.
+
+These results cover this TV and firmware; other Sony models may differ. The unsupported-device explanation and button layout were also exercised on the emulator. They are not a latency, energy or physical remote/HDMI/audio certification. Private APKs, credentials, device identifiers, screenshots and settings exports are excluded from the public repository.

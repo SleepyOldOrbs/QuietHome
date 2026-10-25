@@ -24,12 +24,13 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **Optional news.** Choose Good news from Good News Network, or BBC UK, World or Technology. Good news excludes common distressing topics using a conservative word filter; it cannot guarantee editorial tone. Read publisher headlines and short summaries with the remote.
 - **Local settings backups.** Save and restore the dock, gallery state, artwork delay and widget preferences.
 - **TV input shortcuts.** List the available passthrough inputs using the TV's own labels.
+- **Power and Restart.** Separate buttons at the right of the bottom row, with Cancel selected in each confirmation. Compatible Sony TVs use their own password-protected control service; Power means standby. See [setup and limitations](docs/POWER-CONTROLS.md).
 
 The app is Java and Android framework code: no Gradle dependencies, WebView, analytics SDK, background service or wallpaper downloader. Network work uses a separate worker from image decoding.
 
 ## Current status
 
-Current source: **1.11-preview.2**, replacing small panel sprigs with substantial, realistic corner garlands across all six botanical/seasonal themes. The approved screen corners remain unchanged. Version 1.10 added Home-screen-only video and Summertime. Version 1.9 added optional local video backgrounds, a verified copy helper and still-picture fallback. Version 1.8 added five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
+Current source: **1.12-preview.1**, adding confirmed Power and Restart controls for compatible Sony TVs. Version 1.11-preview.2 replaced small panel sprigs with substantial, realistic corner garlands across all six botanical/seasonal themes. The approved screen corners remain unchanged. Version 1.10 added Home-screen-only video and Summertime. Version 1.9 added optional local video backgrounds, a verified copy helper and still-picture fallback. Version 1.8 added five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 

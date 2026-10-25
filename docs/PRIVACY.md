@@ -15,7 +15,7 @@ The clock and wallpaper rotation are local. Images are read from the app's bundl
 | `feeds.bbci.co.uk` | Public RSS | Selected UK, World or Technology feed |
 | `www.goodnewsnetwork.org` | Public RSS | Good news edition; exact path `/category/news/feed/` only |
 
-Requests use HTTPS and a fixed QuietHome user-agent. Providers see the public IP address of the connection. Requests do not include a device serial, app list, account credentials or advertising identifier.
+Public-feed requests use HTTPS and a fixed QuietHome user-agent. Providers see the public IP address of the connection. Requests do not include a device serial, app list, account credentials or advertising identifier.
 
 Feed fetches allow only these hosts, reject redirects, bound the response size to 256 KiB and apply connection/read timeouts. RSS parsing rejects document type/entity declarations. News text is displayed as text, not executed HTML.
 
@@ -38,6 +38,12 @@ Use **Widgets > Clear feed data and turn feeds off** to remove cached feed bodie
 News summaries are the publisher's feed descriptions, not generated summaries.
 
 ## Local data and backups
+
+Power buttons use Sony's local service at `http://127.0.0.1/sony/system`. This is the only HTTP exception; LAN and internet HTTP remain disallowed. Commands never leave the TV. There is no PC dependency, shell command, ADB key, root access, accessibility service or new Android permission. An explicit connection check uses Sony's authenticated, read-only `getSystemInformation` method; the returned device information is not displayed, logged, uploaded or saved.
+
+Sony must already permit password-authenticated IP control. QuietHome accepts that separate TV control password through a password field and verifies it before saving. It is stored in Android's app-private `noBackupFilesDir`, excluded from both QuietHome settings exports and Android's automatic backup. It is not logged or included in public code/builds. **Power/Restart → Connection → Forget connection** erases the local copy. Sony's control password can authorise capabilities beyond the two commands QuietHome exposes, so keep it private. QuietHome never changes Sony's authentication mode or password itself. The TV owner must authorise those settings separately; retain an existing password if other controllers use it.
+
+Each command requires a confirmation, runs on a worker with connection/read timeouts, and is sent once without automatic retries. A missing reply can mean the TV is already shutting down; the error message explicitly asks the user to check before retrying. No power polling or scheduled requests are added.
 
 Local preferences include favourites, tile size, selected app, wallpaper shuffle state, artwork delay, widget visibility, news edition, chosen town/coordinates and cached feed data.
 
