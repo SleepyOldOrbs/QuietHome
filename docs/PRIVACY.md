@@ -2,7 +2,7 @@
 
 ## Permission and execution
 
-QuietHome requests only `android.permission.INTERNET`. There is no location, microphone, contacts or shared-storage permission, advertising identifier access, analytics SDK, WebView or background service.
+QuietHome declares `android.permission.INTERNET` for optional feeds and Sony's on-TV control service, plus `android.permission.SCHEDULE_EXACT_ALARM` for the optional sleep timer. Android may require the owner to enable Alarms & reminders access before a timer can be set. There is no location, microphone, contacts or shared-storage permission, advertising identifier access, analytics SDK, WebView or permanent background service.
 
 The clock and wallpaper rotation are local. Images are read from the app's bundled assets. Widget network requests run on a worker separate from image decoding.
 
@@ -39,11 +39,13 @@ News summaries are the publisher's feed descriptions, not generated summaries.
 
 ## Local data and backups
 
-Power buttons use Sony's local service at `http://127.0.0.1/sony/system`. This is the only HTTP exception; LAN and internet HTTP remain disallowed. Commands never leave the TV. There is no PC dependency, shell command, ADB key, root access, accessibility service or new Android permission. An explicit connection check uses Sony's authenticated, read-only `getSystemInformation` method; the returned device information is not displayed, logged, uploaded or saved.
+Power buttons and TV controls use Sony's local service under `http://127.0.0.1/sony/`, with fixed service/method allowlists. This is the only HTTP exception; LAN and internet HTTP remain disallowed. Commands never leave the TV. There is no PC dependency, shell command, ADB key, root access or accessibility service. An explicit connection check uses Sony's authenticated, read-only `getSystemInformation` method; the returned device information is not displayed, logged, uploaded or saved.
 
-Sony must already permit password-authenticated IP control. QuietHome accepts that separate TV control password through a password field and verifies it before saving. It is stored in Android's app-private `noBackupFilesDir`, excluded from both QuietHome settings exports and Android's automatic backup. It is not logged or included in public code/builds. **Power/Restart → Connection → Forget connection** erases the local copy. Sony's control password can authorise capabilities beyond the two commands QuietHome exposes, so keep it private. QuietHome never changes Sony's authentication mode or password itself. The TV owner must authorise those settings separately; retain an existing password if other controllers use it.
+Sony must already permit password-authenticated IP control. QuietHome accepts that separate TV control password through a password field and verifies it before saving. It is stored in Android's app-private `noBackupFilesDir`, excluded from both QuietHome settings exports and Android's automatic backup. It is not logged or included in public code/builds. **Power/Restart → Connection → Forget connection** erases the local copy. Sony's control password can authorise capabilities beyond the controls QuietHome exposes, so keep it private. QuietHome never changes Sony's authentication mode or password itself. The TV owner must authorise those settings separately; retain an existing password if other controllers use it.
 
-Each command requires a confirmation, runs on a worker with connection/read timeouts, and is sent once without automatic retries. A missing reply can mean the TV is already shutting down; the error message explicitly asks the user to check before retrying. No power polling or scheduled requests are added.
+Power, Restart, screen-off listening and starting a sleep timer require confirmation. Commands run on workers with connection/read timeouts and are not automatically retried. A missing reply can mean an action has already happened. Input names/status are read when Home's app catalogue refreshes; sound state is read when opening or changing the sound panel. There is no continuous control polling. A user-set sleep timer is the one exception to foreground-only scheduling: its explicit, non-exported receiver reads power state and requests standby once at expiry.
+
+The timer's boot identity, elapsed deadline and one-use token, and screen-off's previous power-saving mode, are stored privately outside automatic/settings backups. Timers are cancelled after reboot or settings restoration; stale deliveries are rejected. Art brightness is a local overlay, not a change to Sony calibration. Input identifiers and Art brightness are included in normal settings exports. See [TV controls](TV-CONTROLS.md) for lifecycle and recovery limits.
 
 Local preferences include favourites, tile size, selected app, wallpaper shuffle state, artwork delay, widget visibility, news edition, chosen town/coordinates and cached feed data.
 

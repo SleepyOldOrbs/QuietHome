@@ -37,6 +37,9 @@ public final class HomeActivity extends Activity {
     private TextView clock, scene;
     private HomeWidgets widgets;
     private PowerControls powerControls;
+    private TvControls tvControls;
+    private View artworkDim;
+    private TextView tvControlsButton;
     private LinearLayout dock;
     private HorizontalScrollView dockScroll;
     private View allAppsButton;
@@ -61,7 +64,7 @@ public final class HomeActivity extends Activity {
         final HashMap<String,App> previous=new HashMap<>();for(App app:apps)previous.put(app.pkg,app);
         catalogWorker.execute(()->{
             ArrayList<App> result=null;
-            try{result=readApps(previous);}catch(RuntimeException e){android.util.Log.w("QuietHome","App refresh unavailable",e);}
+            try{result=readApps(previous);refreshInputs(result,previous);}catch(RuntimeException e){android.util.Log.w("QuietHome","App refresh unavailable",e);}
             final ArrayList<App> found=result;
             handler.post(()->{
                 catalogBusy=false;if(isDestroyed())return;
@@ -96,6 +99,8 @@ public final class HomeActivity extends Activity {
         ResolveInfo info;
         Intent intent;
         Drawable icon;
+        String inputUri;
+        boolean connected;
     }
     private final Runnable tick = new Runnable() {
         public void run() {
@@ -111,6 +116,7 @@ public final class HomeActivity extends Activity {
                 clock.setText(display);
             }
             widgets.render();
+            if(tvControlsButton!=null){long left=SleepTimer.remaining(HomeActivity.this);tvControlsButton.setText("TV controls"+(left>0?" · "+((left+59999)/60000)+"m":""));}
             if (!videoHoldsRotation() && wallpapers.length>1 && rotation.due(SystemClock.elapsedRealtime()) && !loading) nextScene();
             long clockDelay = 60000 - (System.currentTimeMillis() % 60000);
             long sceneDelay = videoHoldsRotation()||wallpapers.length<2?clockDelay:Math.max(1000,rotation.delay(SystemClock.elapsedRealtime()));
@@ -131,6 +137,10 @@ public final class HomeActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         powerControls=new PowerControls(this);
+        tvControls=new TvControls(this,powerControls,this::editDock,new TvControls.Dim(){
+            public int get(){return getPreferences(0).getInt("art_dim",0);}
+            public void set(int value){getPreferences(0).edit().putInt("art_dim",value).apply();applyArtDim();}
+        });
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
@@ -196,7 +206,7 @@ public final class HomeActivity extends Activity {
             String pkg=info.activityInfo.packageName;if(pkg.equals(getPackageName())||!seen.add(pkg))continue;
             long stamp=0;try{stamp=pm.getPackageInfo(pkg,0).lastUpdateTime;}catch(PackageManager.NameNotFoundException ignored){}
             App old=previous.get(pkg);
-            if(old!=null&&old.stamp==stamp&&old.info.activityInfo.name.equals(info.activityInfo.name)){found.add(old);continue;}
+            if(old!=null&&old.info!=null&&old.stamp==stamp&&old.info.activityInfo.name.equals(info.activityInfo.name)){found.add(old);continue;}
             App app=new App();app.pkg=pkg;app.stamp=stamp;app.info=info;app.name=info.loadLabel(pm).toString();
             if(pkg.equals("com.sony.dtv.tvx"))app.name="TV";
             if(pkg.equals("org.jellyfin.androidtv"))app.name="Jellyfin";
@@ -205,9 +215,32 @@ public final class HomeActivity extends Activity {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
             found.add(app);
         }
+        for(App old:previous.values())if(old.inputUri!=null)found.add(old);
         Collections.sort(found,(a,b)->a.name.compareToIgnoreCase(b.name));return found;
     }
-    private App find(String pkg) { for(App a:apps) if(a.pkg.equals(pkg)) return a; return null; }
+    private void refreshInputs(ArrayList<App> found,Map<String,App> previous){
+        if(!SonyClient.supported())return;
+        try{
+            JSONArray list=SonyClient.call(this,"avContent","getCurrentExternalInputsStatus",new JSONArray(),"1.1").getJSONArray(0);
+            if(list.length()>64)return;
+            ArrayList<App> inputs=new ArrayList<>();HashSet<String> seen=new HashSet<>();
+            for(int i=0;i<list.length();i++){
+                JSONObject row=list.getJSONObject(i);String uri=row.optString("uri");int port=ControlPolicy.hdmiPort(uri);if(port<0)continue;
+                App input=new App();input.pkg=ControlPolicy.inputKey(port);if(!seen.add(input.pkg))continue;
+                input.inputUri=uri;input.name=row.optString("label","").trim();if(input.name.isEmpty())input.name=row.optString("title","HDMI "+port);
+                if(input.name.length()>60)input.name=input.name.substring(0,60);
+                input.connected=row.optBoolean("connection",false);input.icon=getDrawable(android.R.drawable.ic_menu_slideshow);
+                App old=previous.get(input.pkg);
+                inputs.add(old!=null&&old.inputUri!=null&&old.name.equals(input.name)&&old.connected==input.connected?old:input);
+            }
+            found.removeIf(a->a.inputUri!=null);found.addAll(inputs);Collections.sort(found,(a,b)->a.name.compareToIgnoreCase(b.name));
+        }catch(Exception ignored){/* Keep cached inputs if the TV service is temporarily unavailable. */}
+    }
+    private App find(String pkg) {
+        for(App a:apps)if(a.pkg.equals(pkg))return a;
+        String uri=ControlPolicy.inputUri(pkg);if(uri==null)return null;
+        App a=new App();a.pkg=pkg;a.inputUri=uri;a.name="HDMI "+ControlPolicy.hdmiPort(uri);a.icon=getDrawable(android.R.drawable.ic_menu_slideshow);return a;
+    }
     private void build() {
         if(videoBackground!=null)videoBackground.close();
         if(widgets!=null)widgets.destroy();
@@ -223,6 +256,8 @@ public final class HomeActivity extends Activity {
             if(scene!=null)scene.setText(showing?"Video · "+videoFile.replaceFirst("\\.mp4$",""):status.isEmpty()?(currentImage==null?"Your collection":imageCaption(currentImage)):status);
         });
         root.addView(videoBackground.view,new FrameLayout.LayoutParams(-1,-1));
+        artworkDim=new View(this);artworkDim.setVisibility(View.INVISIBLE);
+        root.addView(artworkDim,new FrameLayout.LayoutParams(-1,-1));
         View shade=new View(this);
         shadeView=shade;
         shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
@@ -274,6 +309,7 @@ public final class HomeActivity extends Activity {
         addTool(tools,"Home options",()->homeOptions());
         addTool(tools,"Settings",()->launchSettings());
         tools.addView(new View(this),new LinearLayout.LayoutParams(0,dp(40),1));
+        tvControlsButton=(TextView)addTool(tools,"TV controls",()->tvControls.show());
         addTool(tools,"Power",()->powerControls.show(false));
         View restart=addTool(tools,"Restart",()->powerControls.show(true));
         ((LinearLayout.LayoutParams)restart.getLayoutParams()).rightMargin=0;
@@ -323,7 +359,9 @@ public final class HomeActivity extends Activity {
         String wantedFocus=focusedPackage;
         dock.removeAllViews();
         for(String pkg:favourites) {
-            App a=find(pkg); if(a==null) continue;
+            App a=find(pkg);
+            if(a==null)continue;
+            final App chosenApp=a;
             LinearLayout card=new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL);
             card.setGravity(Gravity.CENTER); card.setPadding(dp(12),dp(10),dp(12),dp(8));
             card.setFocusable(true); card.setFocusableInTouchMode(true); card.setClickable(true);
@@ -338,6 +376,8 @@ public final class HomeActivity extends Activity {
             TextView label=text(a.name,compact?14:15,theme.panelText()); label.setGravity(Gravity.CENTER);
             label.setSingleLine(true); label.setPadding(0,dp(5),0,0);
             card.addView(label,new LinearLayout.LayoutParams(-1,-2));
+            final TextView inputStatus=a.inputUri==null?null:text(a.connected?"Connected":"Not connected",10,theme.panelText());
+            if(inputStatus!=null){inputStatus.setGravity(Gravity.CENTER);card.addView(inputStatus,new LinearLayout.LayoutParams(-1,-2));}
             card.setOnFocusChangeListener((v,f)->{
                 if(f) {
                     focusedPackage=pkg; allAppsButton.setNextFocusUpId(card.getId());
@@ -353,9 +393,10 @@ public final class HomeActivity extends Activity {
                     });
                 }
                 card.setBackground(theme.surface(card,f,dp(15))); label.setTextColor(f?theme.focusText():theme.panelText());
+                if(inputStatus!=null)inputStatus.setTextColor(f?theme.focusText():theme.panelText());
                 card.animate().scaleX(f?1.035f:1).scaleY(f?1.035f:1).setDuration(120).start();
             });
-            card.setOnClickListener(v->open(a));
+            card.setOnClickListener(v->open(chosenApp));
             card.setOnLongClickListener(v->{arrangeApp(pkg);return true;});
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(compact?118:148),dp(108));
             cp.setMargins(dp(4),0,dp(4),0); dock.addView(card,cp);
@@ -370,6 +411,12 @@ public final class HomeActivity extends Activity {
         else if(dock.getChildCount()>0) dock.getChildAt(0).requestFocus();
     }
     private void open(App a) {
+        if(a.inputUri!=null){
+            if(a.connected)tvControls.input(a.inputUri);
+            else new AlertDialog.Builder(this).setTitle(a.name).setMessage("This input reports no connected device. Open it anyway?")
+                .setPositiveButton("Open input",(d,w)->tvControls.input(a.inputUri)).setNegativeButton("Cancel",null).show();
+            return;
+        }
         try{startActivity(a.intent);}catch(RuntimeException e){
             Toast.makeText(this,"This app is unavailable. Check Settings.",Toast.LENGTH_LONG).show();
         }
@@ -381,6 +428,7 @@ public final class HomeActivity extends Activity {
     private void showApps(boolean unused) {
         scanApps();
         final ArrayList<App> choices=new ArrayList<>(apps);
+        choices.removeIf(a->a.inputUri!=null);
         String[] names=new String[choices.size()];
         for(int i=0;i<choices.size();i++) names[i]=choices.get(i).name;
         new AlertDialog.Builder(this).setTitle("All apps")
@@ -389,11 +437,12 @@ public final class HomeActivity extends Activity {
     private void editDock() {
         scanApps();
         final ArrayList<App> choices=new ArrayList<>(apps);
+        for(String key:favourites)if(ControlPolicy.inputUri(key)!=null){boolean present=false;for(App a:choices)if(a.pkg.equals(key))present=true;if(!present)choices.add(find(key));}
         String[] names=new String[choices.size()];
         boolean[] selected=new boolean[choices.size()];
         final ArrayList<String> chosen=new ArrayList<>(favourites);
-        for(int i=0;i<choices.size();i++){names[i]=choices.get(i).name;selected[i]=chosen.contains(choices.get(i).pkg);}
-        new AlertDialog.Builder(this).setTitle("Choose your dock apps")
+        for(int i=0;i<choices.size();i++){App a=choices.get(i);names[i]=a.name+(a.inputUri==null?"":a.connected?" · Connected":" · Not connected");selected[i]=chosen.contains(a.pkg);}
+        new AlertDialog.Builder(this).setTitle("Choose dock apps and inputs")
             .setMultiChoiceItems(names,selected,(d,i,on)->{
                 String p=choices.get(i).pkg;
                 if(on&&!chosen.contains(p))chosen.add(p); else if(!on)chosen.remove(p);
@@ -485,6 +534,7 @@ public final class HomeActivity extends Activity {
         JSONObject state=new JSONObject();
         state.put("video",new JSONObject().put("mode",videoMode).put("file",videoFile));
         state.put("schema",1);state.put("favourites",new JSONArray(favourites));state.put("compact",compact);
+        state.put("artDim",getPreferences(0).getInt("art_dim",0));
         if(theme!=null){
             state.put("theme",theme.mode);ThemeStyle style=HomeTheme.read(getPreferences(0));
             state.put("appearance",new JSONObject().put("accent",style.accent).put("tint",style.tint)
@@ -580,6 +630,8 @@ public final class HomeActivity extends Activity {
             }
             saveBackup("before-restore-"+System.currentTimeMillis()+".json",false);
             changesStarted=true;
+            SleepTimer.cancel(this);
+            getPreferences(0).edit().putInt("art_dim",state.optInt("artDim",0)).apply();
             favourites.clear();favourites.addAll(restored);compact=restoredCompact;focusedPackage=restoredFocus;
             if(restoredDeck!=null){
                 wallpaperDeck=restoredDeck;artworkDelay=restoredDelay;
@@ -701,7 +753,7 @@ public final class HomeActivity extends Activity {
                     artworkDelay=delays[index];
                     getPreferences(0).edit().putLong("artwork_delay",artworkDelay).apply();
                     dialog.dismiss();armArtwork();
-                }).setNegativeButton("Cancel",null).show();
+                }).setNeutralButton("Art brightness",(d,i)->tvControls.artBrightness()).setNegativeButton("Cancel",null).show();
     }
     private void armArtwork(){
         handler.removeCallbacks(enterArtwork);
@@ -711,6 +763,7 @@ public final class HomeActivity extends Activity {
     private void setArtworkVisible(boolean visible){
         if(artworkVisible!=visible)videoSuppressed=false;
         artworkVisible=visible;syncVideo();
+        applyArtDim();
         for(View view:new View[]{headerView,lowerView,shadeView,natureBorder,widgets==null?null:widgets.view}){
             if(view==null)continue;
             view.animate().cancel();
@@ -726,6 +779,11 @@ public final class HomeActivity extends Activity {
         if(!visible)armArtwork();
         android.util.Log.i("QuietHome","Artwork mode: "+(visible?"on":"off"));
     }
+    private void applyArtDim(){
+        if(artworkDim==null)return;int value=getPreferences(0).getInt("art_dim",0);if(!ControlPolicy.artDim(value))value=0;
+        artworkDim.setBackgroundColor(Color.argb(Math.round(value*2.55f),0,0,0));
+        artworkDim.setVisibility(artworkVisible&&value>0?View.VISIBLE:View.INVISIBLE);
+    }
     private boolean navigationKey(int key){
         return key==KeyEvent.KEYCODE_DPAD_UP || key==KeyEvent.KEYCODE_DPAD_DOWN ||
             key==KeyEvent.KEYCODE_DPAD_LEFT || key==KeyEvent.KEYCODE_DPAD_RIGHT ||
@@ -735,6 +793,9 @@ public final class HomeActivity extends Activity {
     }
     @Override public boolean dispatchKeyEvent(KeyEvent event){
         int key=event.getKeyCode();
+        if(event.getAction()==KeyEvent.ACTION_DOWN&&navigationKey(key)&&tvControls.picturePending()){
+            tvControls.home();swallowedKey=key;return true;
+        }
         if(key==swallowedKey){
             if(event.getAction()==KeyEvent.ACTION_UP)swallowedKey=-1;
             return true;
@@ -770,7 +831,7 @@ public final class HomeActivity extends Activity {
         if(focused){armArtwork();if(catalogDirty)handler.post(refreshCatalog);}else handler.removeCallbacks(enterArtwork);
     }
     @Override protected void onNewIntent(Intent intent){
-        super.onNewIntent(intent);setIntent(intent);setArtworkVisible(false);
+        super.onNewIntent(intent);setIntent(intent);tvControls.home();setArtworkVisible(false);
     }
     @Override protected void onStart(){
         super.onStart();
@@ -785,7 +846,7 @@ public final class HomeActivity extends Activity {
         unregisterReceiver(packageChanges);handler.removeCallbacks(refreshCatalog);super.onStop();
     }
     @Override protected void onResume(){
-        super.onResume();active=true;powerControls.setActive(true);swallowedKey=-1;swallowedTouch=false;
+        super.onResume();active=true;powerControls.setActive(true);tvControls.active(true);tvControls.home();swallowedKey=-1;swallowedTouch=false;
         rotation.resume(SystemClock.elapsedRealtime());
         setArtworkVisible(false);handler.removeCallbacks(tick);handler.post(tick);
         widgets.start();catalogDirty=true;handler.post(refreshCatalog);
@@ -793,7 +854,7 @@ public final class HomeActivity extends Activity {
     }
     @Override protected void onPause(){
         rotation.pause(SystemClock.elapsedRealtime());
-        active=false;powerControls.setActive(false);syncVideo();handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
+        active=false;powerControls.setActive(false);tvControls.active(false);syncVideo();handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         widgets.stop();handler.removeCallbacks(refreshCatalog);catalogGeneration++;
         imageLoader.cancel();loading=false;
         persistGallery();super.onPause();
@@ -801,6 +862,7 @@ public final class HomeActivity extends Activity {
     @Override protected void onDestroy(){
         active=false;handler.removeCallbacks(tick);handler.removeCallbacks(enterArtwork);
         if(powerControls!=null)powerControls.close();
+        if(tvControls!=null)tvControls.close();
         if(videoBackground!=null)videoBackground.close();
         widgets.destroy();
         imageLoader.destroy();catalogWorker.shutdownNow();super.onDestroy();

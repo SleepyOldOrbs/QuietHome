@@ -28,6 +28,8 @@ Only `127.0.0.1` is permitted to use HTTP, since Sony's local service has no TLS
 
 ## Recovery
 
+Version 1.13 reuses this connection for the optional [TV controls menu](TV-CONTROLS.md), including sound, inputs, screen-off listening and a sleep timer. Restore the picture and cancel any active timer before rolling back that version.
+
 Cancel or Back leaves the TV on. Commands are never retried automatically. If the TV disappears before responding, check its screen before trying again.
 
 If authentication stops working, choose either button, then **Connection → Update password**. **Forget connection** deletes QuietHome's copy. To undo a setup that enabled password control solely for QuietHome, restore Sony's recorded original authentication mode. On the tested TV, restoring **Normal** disables password authentication; Sony's editor did not reliably accept clearing the key, so the recovery kit retains that inactive key for reapplication. This restores the original authentication behaviour, not the original empty key field. Do not change a shared control password used by other devices without their owner's agreement.

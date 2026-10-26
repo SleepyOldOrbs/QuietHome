@@ -23,14 +23,15 @@ It began as a custom home screen for a Sony BRAVIA and grew into a standalone la
 - **Optional weather.** Choose a town; see modelled conditions, temperature and today's high/low in Celsius or Fahrenheit. Unit changes work offline.
 - **Optional news.** Choose Good news from Good News Network, or BBC UK, World or Technology. Good news excludes common distressing topics using a conservative word filter; it cannot guarantee editorial tone. Read publisher headlines and short summaries with the remote.
 - **Local settings backups.** Save and restore the dock, gallery state, artwork delay and widget preferences.
-- **TV input shortcuts.** List the available passthrough inputs using the TV's own labels.
+- **TV input shortcuts.** List available passthrough inputs using the TV's labels. Compatible Sony TVs also let you pin HDMI inputs beside apps, with connection status and a confirmation for disconnected sources.
 - **Power and Restart.** Separate buttons at the right of the bottom row, with Cancel selected in each confirmation. Compatible Sony TVs use their own password-protected control service; Power means standby. See [setup and limitations](docs/POWER-CONTROLS.md).
+- **TV controls.** Switch off the picture while a supported music app keeps playing, adjust volume/mute, or set a 30/60/90-minute sleep timer on compatible Sony TVs. Optional Art brightness dims only QuietHome's artwork. See [controls and recovery](docs/TV-CONTROLS.md).
 
 The app is Java and Android framework code: no Gradle dependencies, WebView, analytics SDK, background service or wallpaper downloader. Network work uses a separate worker from image decoding.
 
 ## Current status
 
-Current source: **1.12-preview.1**, adding confirmed Power and Restart controls for compatible Sony TVs. Version 1.11-preview.2 replaced small panel sprigs with substantial, realistic corner garlands across all six botanical/seasonal themes. The approved screen corners remain unchanged. Version 1.10 added Home-screen-only video and Summertime. Version 1.9 added optional local video backgrounds, a verified copy helper and still-picture fallback. Version 1.8 added five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
+Current source: **1.13-preview.1**, adding a TV controls menu, HDMI favourites, Art brightness and an optional sleep timer. Version 1.12 added Power and Restart for compatible Sony TVs. Version 1.11-preview.2 replaced small panel sprigs with substantial, realistic corner garlands across all six botanical/seasonal themes. The approved screen corners remain unchanged. Version 1.10 added Home-screen-only video and Summertime. Version 1.9 added optional local video backgrounds, a verified copy helper and still-picture fallback. Version 1.8 added five botanical/seasonal presets and reversible colour, transparency and border controls. Version 1.7 also adds themes, widget layouts, neighbour-picture caching and background app-list refresh. See [measured performance](docs/PERFORMANCE.md), [validation](docs/TESTING.md) and the earlier [eight improvement loops](docs/IMPROVEMENT-LOOPS.md) for evidence and limits.
 
 Earlier versions were exercised on a Sony BRAVIA running Android 12, including artwork mode, remote navigation, widget feeds, cached results, settings restoration and APK rollback. Automated and ADB checks do not certify HDMI, playback, audio or a physical remote.
 
@@ -99,7 +100,7 @@ Volume and media buttons retain their normal actions. Open dialogs pause the art
 
 ## Privacy
 
-The only requested permission is `INTERNET`, for optional weather and news. No device-location permission is used. Weather and news are off until you enable them; the clock works locally. Explicit widget choices from earlier versions are retained. You can turn each widget off in **Home options → Widgets**.
+`INTERNET` supports optional weather/news and the on-TV Sony control connection. `SCHEDULE_EXACT_ALARM` supports an optional sleep timer while another app is open; Android may ask you to allow Alarms & reminders access. No device-location permission is used. Weather and news are off until you enable them; the clock works locally. Explicit widget choices from earlier versions are retained. You can turn each widget off in **Home options → Widgets**.
 
 Feeds are fetched about every 30 minutes while Home is active, with local caching and visible update ages. Providers receive your public IP; weather requests include the selected town's coordinates. Opening a news article uses an external browser.
 

@@ -11,7 +11,7 @@ $suffix=if($IsWindows){'.exe'}else{''}
 $build=Join-Path $PSScriptRoot ('build/tests-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path "$build/classes","$build/dex" | Out-Null
 function Check {if($LASTEXITCODE -ne 0){throw "Test command failed with exit $LASTEXITCODE"}}
-$hostSources=@('WallpaperDeck','RequestGate','DisplayFormat','RotationTimer','LatestRequest','ThemeStyle','VideoPolicy','PowerRequest')
+$hostSources=@('WallpaperDeck','RequestGate','DisplayFormat','RotationTimer','LatestRequest','ThemeStyle','VideoPolicy','PowerRequest','ControlPolicy')
 foreach($name in $hostSources){
     & "$Jdk/bin/javac$suffix" -encoding UTF-8 -d "$build/classes" "$PSScriptRoot/src/local/quiethome/$name.java" "$PSScriptRoot/tests/${name}Test.java"; Check
     & "$Jdk/bin/java$suffix" -cp "$build/classes" "local.quiethome.${name}Test"; Check

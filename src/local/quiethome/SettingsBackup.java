@@ -36,6 +36,7 @@ final class SettingsBackup {
     }
     static void validate(JSONObject state) throws JSONException {
         if(integer(state,"schema")!=1)throw new JSONException("Unknown schema");
+        if(state.has("artDim")){long value=integer(state,"artDim");if(value<0||value>100||!ControlPolicy.artDim((int)value))throw new JSONException("Invalid art brightness");}
         if(state.has("theme")){long theme=integer(state,"theme");if(theme<0||theme>=ThemeStyle.NAMES.length)throw new JSONException("Invalid theme");}
         if(state.has("appearance")){
             JSONObject appearance=state.getJSONObject("appearance");
@@ -54,6 +55,7 @@ final class SettingsBackup {
         for(int i=0;i<favourites.length();i++){
             String pkg=string(favourites.get(i),255);
             if(!pkg.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+"))throw new JSONException("Invalid package");
+            if(pkg.startsWith("local.quiethome.input.")&&ControlPolicy.inputUri(pkg)==null)throw new JSONException("Invalid input identifier");
         }
         if(state.has("widgets"))validateWidgets(state.getJSONObject("widgets"));
         if(state.has("gallery")){

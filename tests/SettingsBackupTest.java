@@ -20,6 +20,10 @@ public final class SettingsBackupTest {
     }
     public static void main(String[] args) throws Exception {
         SettingsBackup.validate(base()); // A blank dock is a valid portable backup.
+        for(int dim:new int[]{0,15,30,50})SettingsBackup.validate(base().put("artDim",dim));
+        for(Object dim:new Object[]{-1,10,51,100,0.5,"15",true,JSONObject.NULL})reject(base().put("artDim",dim));
+        SettingsBackup.validate(base().put("favourites",new JSONArray().put("local.quiethome.input.hdmi1").put("example.app")));
+        reject(base().put("favourites",new JSONArray().put("local.quiethome.input.hdmi33")));
         for(int mode=0;mode<4;mode++)SettingsBackup.validate(base().put("video",new JSONObject().put("mode",mode).put("file","forest.mp4")));
         SettingsBackup.validate(base().put("video",new JSONObject().put("mode",0).put("file","")));
         reject(base().put("video",JSONObject.NULL));reject(base().put("video",new JSONObject()));

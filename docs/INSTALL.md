@@ -72,6 +72,16 @@ Copy them to your own private storage if needed. They contain app package names,
 
 Avoid committing these backups or device screenshots to a public issue. Keep your signing key so future builds can update the same app in place.
 
+## Optional TV controls (1.13)
+
+See [TV controls](TV-CONTROLS.md) for screen-off listening, HDMI favourites, Art brightness, sound and the sleep timer. Sony controls reuse the [Power/Restart connection](POWER-CONTROLS.md); this update does not change Sony authentication. Other devices can use Art brightness through Home options → Artwork mode.
+
+Only the optional sleep timer needs Android Alarms & reminders access. The app offers the supported settings page if access is missing. Do not grant unrelated permissions or bypass a rejected permission. Existing controls work without timer access.
+
+Before rolling back, press Home to restore a picture switched off by QuietHome, cancel any sleep timer, and save a fresh settings backup. Retain an original-key compatible rollback APK. Restore any alarm-access setting you deliberately changed during setup. The private, device-specific recovery kit performs those steps; it is not distributed with public source. No uninstall or data clear is needed.
+
+Schema-1 exports now optionally include `artDim` (0, 15, 30 or 50). An older export restores Original brightness. HDMI favourites use reserved identifiers and retain their order in older launchers, which cannot display those input tiles. Timers, Sony control passwords and temporary picture-off recovery records are excluded from exports. Restoring settings cancels a running timer rather than reviving one from a backup.
+
 ## Optional video backgrounds
 
 See [local video setup](VIDEO-BACKGROUNDS.md) for the verified copy helper, input limits and recovery. Videos are separate from the APK and settings export. Back up the videos directory alongside your settings. Old backups restore video playback to Off.
